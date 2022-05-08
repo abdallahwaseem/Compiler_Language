@@ -1,7 +1,8 @@
+%option yylineno
 %{   
 	#include <stdlib.h>
 	#include <stdio.h>
-	#include "y.tab.h"
+	#include "yacc.tab.h"
 %}
 
 %%

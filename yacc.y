@@ -90,6 +90,8 @@
 	%left AND OR NOT
 	%left PLUS MINUS 
 	%left DIVIDE MULTIPLY REM
+	%left POWER
+	%left ORBRACKET CRBRACKET
 
 %nonassoc IFX
 %nonassoc ELSE
@@ -99,8 +101,8 @@
 	#include <stdio.h>   
 	int yyerror(char *);
 	int yylex(void);
-	extern int yylineno;
-  extern char* yytext;
+	extern int yylineno ;
+  	extern char* yytext;
 	FILE * f1;
 	extern FILE * yyin;
 %}
@@ -115,33 +117,37 @@ function :      function stmt
 		|		
 		;
 		
-stmt:   Mathematical_Statement SEMICOLON {printf("Doing math");}
+stmt:   IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Doing math\n");} 
+	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 		;
 
+EXPRESSION: Data_Types {printf("sa\n");}
+		;
 
 Number_Declaration: FLOAT {printf("float\n");}
 				|	INT {printf("int \n");}
-				|   IDENTIFIER {prinf("variable");}
-				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation");}
-				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation");}
-				| 	Number_Declaration DIVIDE Number_Declaration {printf("division operation");}
-				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation");}
-				| 	Number_Declaration REM Number_Declaration {printf("remainder operation");}
-				| 	Number_Declaration POWER Number_Declaration {printf("power operation");}
-				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets");}
+				|   IDENTIFIER {printf("variable\n");}
+				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation\n");}
+				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation\n");}
+				| 	Number_Declaration DIVIDE Number_Declaration {printf("division operation\n");}
+				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation\n");}
+				| 	Number_Declaration REM Number_Declaration {printf("remainder operation\n");}
+				| 	Number_Declaration POWER Number_Declaration {printf("power operation\n");}
+				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets\n");}
+				;
 
-Mathematical_Statement: IDENTIFIER ASSIGN Number_Declaration {printf("Assigning a Number");}
-				|		IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding a Number to a value");}
-				|		IDENTIFIER MINUSEQUAL Number_Declaration {printf("Subtracting a Number to a value");}
-				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {printf("Multiplying a Number to a value");}
-				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {printf("Dividing a Number to a value");}
-				|		IDENTIFIER REMEQUAL Number_Declaration {printf("Remaindering a Number to a value");}
-				|   	IDENTIFIER INCREMENT {printf("incrementing number");}
-				|   	IDENTIFIER DECREMENT {printf("decrement");}
 
-Data_Types: Number_Declaration {printf("This is a number");}
-			
+Data_Types: Number_Declaration {printf("number declaration \n");}
+				;
 
+Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding a Number to a value\n");}
+				|		IDENTIFIER MINUSEQUAL Number_Declaration {printf("Subtracting a Number to a value\n");}
+				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {printf("Multiplying a Number to a value\n");}
+				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {printf("Dividing a Number to a value\n");}
+				|		IDENTIFIER REMEQUAL Number_Declaration {printf("Remaindering a Number to a value\n");}
+				|   	IDENTIFIER INCREMENT {printf("incrementing number\n");}
+				|   	IDENTIFIER DECREMENT {printf("decrement\n");}
+				; 
 
 
 %% 
