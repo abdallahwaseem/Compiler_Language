@@ -52,7 +52,7 @@
 "switch"                						return SWITCH;
 "case"                  						return CASE;
 "return"                						return RET;
-
+"continue"										return CONTINUE;
 
 "bool"				    						      return BOOL;
 "int"											          return INT;

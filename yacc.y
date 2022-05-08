@@ -50,7 +50,7 @@
 	%token FOR
 
 // Tokens for conditions
-	%token IF
+	%token IF 
 	%token ELSE
 
 // TODO:: print token
@@ -67,6 +67,9 @@
 
 // Tokens for break
 	%token BREAK
+
+// Tokens for continue
+	%token CONTINUE
 
 // Token for IDENTIFIER
   %token IDENTIFIER
@@ -97,7 +100,8 @@
 // token DEFAULT
 	%token DEFAULT
 
-
+%nonassoc IFX
+%nonassoc ELSE
 %nonassoc UMINUS
 
 %{  
@@ -119,17 +123,20 @@ statements: statements stmt
 			|		
 			;
 		
-stmt:   Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable Declaration\n");} 
+stmt:   
+		Type_Identifier IDENTIFIER  SEMICOLON {printf("Undeclared Variable \n");} 
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable Declaration\n");} 
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");} 
+	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
+	|	IF_Statement
 	|	Scope	
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
 	| 	Switch_Case
-	/* |	MIF
-	|	UIF */
-	| CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
+	|	BREAK SEMICOLON
+	|	CONTINUE SEMICOLON
 	;
 
 EXPRESSION: Data_Types {printf("expression datatype\n");}
@@ -147,6 +154,7 @@ Number_Declaration: FLOAT 	{printf("float\n");}
 				| 	Number_Declaration REM Number_Declaration {printf("remainder operation\n");}
 				| 	Number_Declaration POWER Number_Declaration {printf("power operation\n");}
 				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets\n");}
+				| 	'-' Number_Declaration %prec UMINUS {printf("-ve number");}
 				;
 
 
@@ -240,14 +248,13 @@ Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
 				|	// since we can have no default or any case (tested on C++)
 				;
 
-// matched if
-/* MIF : IF ORBRACKET EXPRESSION CRBRACKET OCBRACKET MIF CCBRACKET ELSE OCBRACKET MIF CCBRACKET
-	;
 
-// unmatched if
-UIF : IF ORBRACKET EXPRESSION CRBRACKET OCBRACKET statements CCBRACKET
-	| IF ORBRACKET EXPRESSION CRBRACKET OCBRACKET MIF CCBRACKET ELSE OCBRACKET UIF CCBRACKET
-	; */
+IF_Statement : IF ORBRACKET EXPRESSION CRBRACKET stmt endCondition {printf("IF_Statement");}
+			;
+
+endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
+			;
+
 
 %% 
  int yyerror(char *s) {  int lineno=++yylineno;   fprintf(stderr, "line number : %d %s\n", lineno,s);     return 0; }
