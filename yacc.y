@@ -11,6 +11,8 @@
 	%token COMMA
 
 // Tokens for x equal
+	%token INCREMENT
+	%token DECREMENT
 	%token PLUSEQUAL
 	%token MINUSEQUAL
 	%token MULTIPLYEQUAL
@@ -29,12 +31,13 @@
 	%token MINUS
 	%token MULTIPLY
 	%token DIVIDE
-
+	%token POWER
 // Tokens for assign
 	%token ASSIGN
 
 // Tokens for remainder
 	%token REM
+	%token REMEQUAL
 
 // Tokens for logic operators
 	%token AND
@@ -109,11 +112,37 @@ program	:
 		;
 	
 function :      function stmt  
-		|
+		|		
 		;
 		
-stmt:   OCBRACKET CCBRACKET {printf("Brackets\n");}
+stmt:   Mathematical_Statement SEMICOLON {printf("Doing math");}
 		;
+
+
+Number_Declaration: FLOAT {printf("float\n");}
+				|	INT {printf("int \n");}
+				|   IDENTIFIER {prinf("variable");}
+				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation");}
+				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation");}
+				| 	Number_Declaration DIVIDE Number_Declaration {printf("division operation");}
+				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation");}
+				| 	Number_Declaration REM Number_Declaration {printf("remainder operation");}
+				| 	Number_Declaration POWER Number_Declaration {printf("power operation");}
+				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets");}
+
+Mathematical_Statement: IDENTIFIER ASSIGN Number_Declaration {printf("Assigning a Number");}
+				|		IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding a Number to a value");}
+				|		IDENTIFIER MINUSEQUAL Number_Declaration {printf("Subtracting a Number to a value");}
+				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {printf("Multiplying a Number to a value");}
+				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {printf("Dividing a Number to a value");}
+				|		IDENTIFIER REMEQUAL Number_Declaration {printf("Remaindering a Number to a value");}
+				|   	IDENTIFIER INCREMENT {printf("incrementing number");}
+				|   	IDENTIFIER DECREMENT {printf("decrement");}
+
+Data_Types: Number_Declaration {printf("This is a number");}
+			
+
+
 
 %% 
  int yyerror(char *s) {  int lineno=++yylineno;   fprintf(stderr, "line number : %d %s\n", lineno,s);     return 0; }

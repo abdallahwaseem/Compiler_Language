@@ -11,7 +11,8 @@
 \)												          return CRBRACKET;
 
 
-
+"++"													  return INCREMENT;
+"--"													  return DECREMENT;
 "+="											          return PLUSEQUAL;
 "-="											          return MINUSEQUAL;
 "*="											          return MULTIPLYEQUAL;
@@ -25,15 +26,16 @@
 "+"												          return PLUS;
 "-"												          return MINUS;
 "*"												          return MULTIPLY;
+"^"												return POWER;
 "/"												          return DIVIDE;
 "="												          return ASSIGN;
 "%"												          return REM;
+"%="													  return REMEQUAL;
 
 
 ;                       						return SEMICOLON;
 :                       						return COLON; 
 ,                       						return COMMA;
-
 
 "&&"											          return AND;
 "||"											          return OR;
