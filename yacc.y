@@ -53,6 +53,7 @@
 	%token IF
 	%token ELSE
 
+// TODO:: print
 // Tokens for print
 	%token PRINT
 
@@ -94,6 +95,9 @@
 	%left POWER
 	%left ORBRACKET CRBRACKET
 
+// token DEFAULT
+	%token DEFAULT
+
 %nonassoc IFX
 %nonassoc ELSE
 %nonassoc UMINUS
@@ -124,6 +128,10 @@ stmt:   Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
+	| 	Switch_Case
+	/* |	MIF
+	|	UIF */
+	| CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	;
 
 EXPRESSION: Data_Types {printf("expression datatype\n");}
@@ -198,9 +206,17 @@ Type_Identifier:  INT {printf("integer type\n");}
 				| BOOL	{printf("bool type\n");}
 				;
 		
+
 // Function declaration - added void option
-FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Scope {printf("function declaration \n");}
+// in void we can return or not 
+// while in any other return type fn , we must return expression ; 
+FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {printf("function declaration \n");}
 			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Scope {printf("function declaration \n");}
+			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {printf("function declaration \n");}
+			;
+
+Function_Scope: OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	{printf("fn scope \n");}
+			| OCBRACKET statements RET SEMICOLON CCBRACKET 	{printf("fn scope \n");}
 			;
 
 ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{printf("function arguments \n");}
@@ -214,6 +230,26 @@ Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n
 				;
 
 Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {printf("calling fn \n");}
+
+// we made switch take a no (int , float ,.. ) or a fn call which returns int
+// will check that later
+Switch_Case : SWITCH Number_Declaration OCBRACKET Case_Expressions CCBRACKET
+			| SWITCH ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
+			;
+
+Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
+				|	DEFAULT COLON statements 
+				|	// since we can have no default or any case (tested on C++)
+				;
+
+// matched if
+/* MIF : IF ORBRACKET EXPRESSION CRBRACKET OCBRACKET MIF CCBRACKET ELSE OCBRACKET MIF CCBRACKET
+	;
+
+// unmatched if
+UIF : IF ORBRACKET EXPRESSION CRBRACKET OCBRACKET statements CCBRACKET
+	| IF ORBRACKET EXPRESSION CRBRACKET OCBRACKET MIF CCBRACKET ELSE OCBRACKET UIF CCBRACKET
+	; */
 
 %% 
  int yyerror(char *s) {  int lineno=++yylineno;   fprintf(stderr, "line number : %d %s\n", lineno,s);     return 0; }

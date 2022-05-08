@@ -66,6 +66,7 @@
 "false"										        	return FALSE;
 "true"										        	return TRUE;
 
+"default"												return DEFAULT;	
 
 [0-9]+											        {yylval = atoi(yytext); return INT;}
 [0-9]+\.[0-9]+									    {yylval = atof(yytext); return FLOAT;}
