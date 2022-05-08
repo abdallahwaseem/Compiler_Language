@@ -14,7 +14,7 @@ compile:
 try : 
 	./a.out
 all:
-	flex lex.l
 	bison yacc.y -d
+	flex lex.l
 	gcc lex.yy.c yacc.tab.c -o a.out
 	./a.out
