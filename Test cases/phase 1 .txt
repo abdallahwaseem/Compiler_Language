@@ -1,0 +1,77 @@
+int main(){
+    int x; 
+    int y = 10 ;
+    f2();
+    x = f3();
+    
+    
+
+    int z = x >= y ;
+    for (int x = 0 ; x < 10 ; x++ ){
+        x++ ;
+        break;
+    }
+
+    if(z == True){
+        z = False;
+    }
+
+    
+    while ( x >=0 ){
+        x-- ;
+    }
+
+    do{
+        y-- ;
+    }while(y!=0);
+
+    switch (x){
+        case 1 :
+            x++; 
+            break;
+        case 2 :
+            x--;
+            break;
+        
+        default:
+            x++;
+            break;
+    }
+
+    x = y + y + y + 1;
+    
+    char a = 'a';
+    float b = 21.212;
+    string c = "sakjd@12sda";
+    
+    z= a > b > c;
+
+    if(x){
+        if(y){
+            c++;
+        }else{
+            c--;
+        }
+    }else{
+        c = 0;
+    }
+
+
+    x= f1(f2());
+    x= f1(f2(2),1);
+    x= f1(f2(3),2,f1(2));
+
+    x = y*z + 3^2;
+
+    x= !x;
+    while(!x){
+        x++;
+    }
+    
+    const int r = 21;
+    
+
+    break;
+    continue;
+    return 0 ; 
+}
