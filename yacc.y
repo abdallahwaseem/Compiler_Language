@@ -249,6 +249,10 @@ Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
 				;
 
 
+/* 
+IF ELSE Case
+https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
+*/
 IF_Statement : IF ORBRACKET EXPRESSION CRBRACKET stmt endCondition {printf("IF_Statement");}
 			;
 
