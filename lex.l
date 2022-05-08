@@ -51,7 +51,6 @@
 "break"                 						return BREAK;
 "switch"                						return SWITCH;
 "case"                  						return CASE;
-"print"        								     	return PRINT;
 "return"                						return RET;
 
 

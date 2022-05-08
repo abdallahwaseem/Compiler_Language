@@ -53,9 +53,8 @@
 	%token IF
 	%token ELSE
 
-// TODO:: print
-// Tokens for print
-	%token PRINT
+// TODO:: print token
+
 
 // Tokens for primitive data types
 	%token BOOL
@@ -98,8 +97,7 @@
 // token DEFAULT
 	%token DEFAULT
 
-%nonassoc IFX
-%nonassoc ELSE
+
 %nonassoc UMINUS
 
 %{  
