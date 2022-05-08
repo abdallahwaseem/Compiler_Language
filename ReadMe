@@ -1,0 +1,20 @@
+These are not issues , Just assumptions based on the language we choose ..
+
+we made the statement can derive break , continue , ..
+although these keywords must be used in the correct context so we will check later in phase 2 
+----------------------------------
+
+we removed boolean datatype in order to recursively make boolean expressions instead of only one 
+since before we made recursive expressions on numbers
+
+-----------------------------------
+
+
+we dont allow boolean expressions in the middle of the code which will do nothing
+ex: 
+    int x=1;
+    int y=2;
+    x>y; --> this is meaningless so we didnt allow it 
+
+    but we allowed it in the right context as if(x>y) , while(x>y) , f1(x>y) , ...
+

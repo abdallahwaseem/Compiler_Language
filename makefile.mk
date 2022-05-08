@@ -9,12 +9,12 @@ parse_error:
 
 
 compile:
-	gcc lex.yy.c yacc.tab.c -o a.out
+	gcc lex.yy.c yacc.tab.c -o a.exe
 
 try : 
-	./a.out
+	./a.exe
 all:
 	bison yacc.y -d
 	flex lex.l
-	gcc lex.yy.c yacc.tab.c -o a.out
-	./a.out
+	gcc lex.yy.c yacc.tab.c -o a.exe
+	./a.exe
