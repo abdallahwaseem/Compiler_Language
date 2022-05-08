@@ -60,8 +60,8 @@
 "float"											        return FLOAT;
 "char"											        return CHAR;
 "string"										        return STRING;
-"const"                 						return CONST;
-
+"const"                 								return CONST;
+"void"                 									return VOID;
 
 "false"										        	return FALSE;
 "true"										        	return TRUE;
