@@ -117,11 +117,12 @@ function :      function stmt
 		|		
 		;
 		
-stmt:   IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Doing math\n");} 
+stmt:   IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Assign statement\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 		;
 
-EXPRESSION: Data_Types {printf("sa\n");}
+EXPRESSION: Data_Types {printf("expression datatype\n");}
+		| 	Boolean_Expression {printf("Boolean expression\n");}
 		;
 
 Number_Declaration: FLOAT {printf("float\n");}
@@ -137,8 +138,24 @@ Number_Declaration: FLOAT {printf("float\n");}
 				;
 
 
-Data_Types: Number_Declaration {printf("number declaration \n");}
-				;
+Data_Types: Number_Declaration {printf("number declaration or identifier \n");}
+			|	TRUE			{printf("Boolean Datatype \n");}
+			|	FALSE			{printf("Boolean Datatype \n");}
+			| 	CHAR			{printf("Character Datatype \n");}
+			| 	STRING			{printf("String Datatype \n");}
+			;
+
+Boolean_Expression: EXPRESSION AND EXPRESSION {printf("and operator \n");}
+					| EXPRESSION OR EXPRESSION {printf("and operator \n");}
+					| NOT EXPRESSION {printf("and operator \n");}
+					| Data_Types GREATERTHAN Data_Types {printf("greater than operator \n");}
+					| Data_Types GREATERTHANOREQUAL Data_Types {printf("greater than equal operator \n");}
+					| Data_Types LESSTHAN Data_Types {printf("less than operator \n");}
+					| Data_Types LESSTHANOREQUAL Data_Types {printf("less than equal operator \n");}
+					| Data_Types EQUALEQUAL Data_Types {printf("== operator \n");}
+					| Data_Types NOTEQUAL Data_Types {printf("!= operator \n");}
+					| ORBRACKET Boolean_Expression CRBRACKET {printf("boolean between brackets \n");}
+
 
 Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding a Number to a value\n");}
 				|		IDENTIFIER MINUSEQUAL Number_Declaration {printf("Subtracting a Number to a value\n");}
