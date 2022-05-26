@@ -1,21 +1,24 @@
 #include "symbolTable.h"
 
 struct scope{
-    symbolTable* my_table ; // current table in this scope
-    scope* my_parent = NULL ; // ptr to my parent scope
-    
-    struct variable_entry* find_variable(char* variable_to_find) {
-        variable_entry* variable_to_find = NULL;
+    struct symbolTable* my_table ; // current table in this scope
+    struct scope* my_parent ; // ptr to my parent scope
+};
+
+struct variable_entry* find_variable_in_scope(struct scope* my_scope, char* variable_to_find) {
+        struct variable_entry* variable_found = NULL;
         
-        variable_to_find = my_table->find_variable(variable_to_find);
-        if(variable_to_find != NULL ){
-            return variable_to_find ;
+        variable_found =  find_variable(my_scope->my_table, variable_to_find);
+
+        if(variable_found != NULL ){
+            return variable_found ;
         }
-        scope* upper_scopes = my_parent ;
+
+        struct scope* upper_scopes = my_scope->my_parent ;
         while(upper_scopes != NULL){
-            upper_scopes->my_table->find_variable(variable_to_find);
-            if(variable_to_find != NULL ){
-                return variable_to_find ;
+            variable_found =  find_variable(upper_scopes->my_table, variable_to_find);
+            if(variable_found != NULL ){
+                return variable_found ;
             }else{
                 // go up one more level
                 upper_scopes = upper_scopes->my_parent;
@@ -24,7 +27,7 @@ struct scope{
         return NULL;
     }
 
-    void add_variable_to_symbolTable(char* name, int is_init,DataTypes datatype ) {
+    RETURN_CODES add_variable_to_scope(struct scope* my_scope, char* name, int is_init,DataTypes datatype ) {
         // making a new variable 
         struct variable_entry* new_variable = (struct variable_entry*)malloc(sizeof(struct variable_entry));
         
@@ -33,6 +36,5 @@ struct scope{
         new_variable->is_used = 0 ;
         new_variable->my_datatype = datatype;
         new_variable->variable_name = name;
-        my_table->add_variable_to_symbolTable(new_variable);
+        return add_variable_to_symbolTable(my_scope->my_table,new_variable);
     }
-};

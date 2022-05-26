@@ -1,21 +1,22 @@
 #include "uthash.h"
 
-enum Kind{
+typedef enum{
     FUNCTION, PARAMETER, VARIABLE
-};
+} Kind;
 
-enum RETURN_CODES{
+typedef enum{
     SUCCESS, FAILURE
-};
+} RETURN_CODES;
+
+typedef enum{
+    INT, FLOAT, CHAR, STRING, Const_INT, Const_FLOAT, Const_CHAR, Const_STRING , function_Datatype
+} DataTypes;
 
 struct function_Datatype{
     DataTypes* inputs; // array of inputs
     DataTypes* output; // array of outputs
 };
 
-enum DataTypes{
-    INT, FLOAT, CHAR, STRING, Const_INT, Const_FLOAT, Const_CHAR, Const_STRING , function_Datatype
-};
 
 struct variable_entry {
     char* variable_name; // we will use the name of variable as key
@@ -28,30 +29,31 @@ struct variable_entry {
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
+
+
 struct symbolTable{ 
-    struct variable_entry *table = NULL;
-
-    RETURN_CODES add_variable_to_symbolTable(struct variable_entry * variable) {
-        
-        // first we need to check if it exist before
-        if(find_variable(variable->variable_name) != NULL){
-            // therefore multiple definition
-            return FAILURE;
-        }
-
-        HASH_ADD_STR( table, variable_name, variable );
-        return SUCCESS;
-    }
-    
-    struct variable_entry* find_variable(char* variable_to_find) {
-        
-        variable_entry * variable;
-        HASH_FIND_STR( table, variable_to_find, variable );
-        return variable;
-    }
-
-    
-
+    struct variable_entry* table;
 };
+
+
+struct variable_entry* find_variable(struct symbolTable *symbolTable, char* variable_to_find) {
+    
+    struct variable_entry * variable;
+    HASH_FIND_STR(symbolTable->table, variable_to_find, variable );
+    return variable;
+}
+
+RETURN_CODES add_variable_to_symbolTable(struct symbolTable *symbolTable, struct variable_entry * variable_to_add) {
+        
+    // first we need to check if it exist before
+    if(find_variable(symbolTable, variable_to_add->variable_name) != NULL){
+        // therefore multiple definition
+        return FAILURE;
+    }
+
+    HASH_ADD_STR(symbolTable->table, variable_name, variable_to_add );
+    return SUCCESS;
+}
+    
 
 
