@@ -18,7 +18,7 @@ enum DataTypes{
 };
 
 struct variable_entry {
-    char variable_name[50]; // we will use the name of variable as key
+    char* variable_name; // we will use the name of variable as key
     DataTypes my_datatype;
     int is_initialized ; // 0 : uninit , 1 : init
     
