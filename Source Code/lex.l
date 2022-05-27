@@ -2,6 +2,7 @@
 %{   
 	#include <stdlib.h>
 	#include <stdio.h>
+	#include <string.h>
 	#include "yacc.tab.h"
 %}
 
@@ -62,18 +63,18 @@
 "const"                 								return CONST;
 "void"                 									return VOID;
 
-"false"										        	return FALSE;
-"true"										        	return TRUE;
+"false"										        	{yylval.boolValue = 0 ; return FALSE;}
+"true"										        	{yylval.boolValue = 1 ; return TRUE;}
 
 "default"												return DEFAULT;	
 
-[0-9]+											        {yylval = atoi(yytext); return INT;}
-[0-9]+\.[0-9]+									    {yylval = atof(yytext); return FLOAT;}
+[0-9]+											        {yylval.intValue = atoi(yytext); return INT;}
+[0-9]+\.[0-9]+									    {yylval.floatValue = atof(yytext); return FLOAT;}
 
 
-\".*\"											        return STRING;
-\'.\'										          	return CHAR;
-[a-zA-Z][_a-zA-Z0-9]*						  	return IDENTIFIER; 	
+\".*\"											        {return STRING;}
+\'.\'										          	{yylval.charValue = yytext[0]; return CHAR;}
+[a-zA-Z][_a-zA-Z0-9]*						  	{yylval.stringValue = strdup(yytext); return IDENTIFIER; }	
 [\t  ]+											        /* ignore whitespace */;
 [\n]											          {}
 

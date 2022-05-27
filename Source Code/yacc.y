@@ -1,4 +1,14 @@
 %start program
+
+%union
+{  
+    int intValue;
+    float floatValue;
+	char charValue;                
+    char* stringValue;
+	int boolValue;
+}
+
 // Tokens for brackets
 	%token OCBRACKET
 	%token CCBRACKET
@@ -57,11 +67,11 @@
 
 
 // Tokens for primitive data types
-	%token INT
-	%token BOOL
-	%token FLOAT
-	%token CHAR
-	%token STRING
+	%token <intValue> INT
+	%token <charValue> CHAR
+	%token <floatValue> FLOAT
+	%token <boolValue> BOOL
+	%token <stringValue> STRING
 	%token CONST
 	%token VOID
 
@@ -72,7 +82,7 @@
 	%token CONTINUE
 
 // Token for IDENTIFIER
-  %token IDENTIFIER
+  %token <stringValue> IDENTIFIER
 
 // Tokens for switch case
 	%token SWITCH
@@ -106,8 +116,7 @@
 
 %{  
 	#include <stdio.h>   
-	#include "scope.h"
-
+	#include "scope.h"  
 	int yyerror(char *);
 	int yylex(void);
 	extern int yylineno ;
@@ -130,8 +139,7 @@ statements: statements stmt
 			|		
 			;
 		
-stmt:   
-		Type_Identifier IDENTIFIER  SEMICOLON {printf("Undeclared Variable \n");} 
+stmt:   Type_Identifier IDENTIFIER  SEMICOLON {printf("%s heree\n",$2);} 
 	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable Declaration\n");} 
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");} 
 	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
