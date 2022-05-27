@@ -2,21 +2,15 @@
 #include<stdio.h>
 #include "dataTypes.h"
 
-struct function_Datatype
-{
-    DataTypes *inputs; // array of inputs
-    DataTypes *output; // array of outputs
-};
-
 struct variable_entry
 {
     char *variable_name; // we will use the name of variable as key
     DataTypes my_datatype;
     int is_initialized; // 0 : uninit , 1 : init
-
+    Kind my_kind ; // function , parameter , variable
     // for unused variables we will give warnings bec its not used through the whole program
     int is_used; // 0 : unused , 1 : used
-
+    struct function_Datatype* params; // parameters for function -> will be used only if kind is function
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
@@ -24,7 +18,7 @@ struct variable_entry *find_variable_in_symbolTable(struct variable_entry **symb
 {
 
     struct variable_entry *variable = NULL;
-    HASH_FIND_STR(*symbolTable, "x", variable);
+    HASH_FIND_STR(*symbolTable, variable_to_find, variable);
 
     if (variable != NULL)
         return variable;
@@ -53,7 +47,7 @@ RETURN_CODES add_variable_to_symbolTable(struct variable_entry **symbolTable, st
     // const int x;
     // 	x = 10;
     // this is an error so we must check this within declaration
-    if (variable_to_add->my_datatype == Const_INT_DT || variable_to_add->my_datatype == Const_FLOAT_DT || variable_to_add->my_datatype == Const_CHAR_DT || variable_to_add->my_datatype == Const_STRING_DT)
+    if (variable_to_add->my_datatype == CONST_INT_DT || variable_to_add->my_datatype == CONST_FLOAT_DT || variable_to_add->my_datatype == CONST_CHAR_DT || variable_to_add->my_datatype == CONST_STRING_DT)
     {
         // if type is constant we will check if not initialized this is error
         if (variable_to_add->is_initialized == 0)
@@ -88,7 +82,7 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
     // const int x = 10;
     // x = 11; -> error
     // handled successfully in assign_previously_declared_variable function above
-    if (variable_to_set->my_datatype == Const_INT_DT || variable_to_set->my_datatype == Const_FLOAT_DT || variable_to_set->my_datatype == Const_CHAR_DT || variable_to_set->my_datatype == Const_STRING_DT || variable_to_set->my_datatype == Const_BOOL_DT)
+    if (variable_to_set->my_datatype == CONST_INT_DT || variable_to_set->my_datatype == CONST_FLOAT_DT || variable_to_set->my_datatype == CONST_CHAR_DT || variable_to_set->my_datatype == CONST_STRING_DT || variable_to_set->my_datatype == CONST_BOOL_DT)
     {
         // if type is constant we cant reassign it
         return CONSTANT_REASSIGNMENT;
