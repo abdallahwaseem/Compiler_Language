@@ -137,7 +137,7 @@ stmt:
 	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 	|	IF_Statement
-	|	{enter_new_scope();} Scope {exit_a_scope();}	
+	|	Scope
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
@@ -204,7 +204,7 @@ Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding 
 				|   	IDENTIFIER DECREMENT {printf("decremening number \n");}
 				; 
 
-Scope:	OCBRACKET statements CCBRACKET {printf("entered scope-> \n");} 	 
+Scope: OCBRACKET statements CCBRACKET {printf("entered scope-> \n");} 	 
 	;
 
 LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
@@ -225,11 +225,13 @@ Type_Identifier:  INT {printf("integer type\n");}
 // while in any other return type fn , we must return expression ; 
 
 
-FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();}
-			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
+
+FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();} 
+			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();}
 			;
 
-Function_Scope: OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 
+Function_Scope: Scope
+			| OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 
 			| OCBRACKET statements RET SEMICOLON CCBRACKET 	
 			;
 
@@ -277,7 +279,7 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 	// make the new scope by malloc
  	current_scope = (struct scope *)malloc(sizeof(struct scope)); 
  	// calling initialize fn in scope.h
-	(*current_scope) = initialize_scope
+	(*current_scope) = initialize_scope();
 	// updating my parent
  	set_parent_of_scope(current_scope,parent_scope);
  }
