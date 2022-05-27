@@ -42,3 +42,9 @@ struct lexemeInfo{
 	int boolValue;
     DataTypes my_type;
 };
+
+void set_lexemeInfo(struct lexemeInfo** input_lexeme, DataTypes my_type){
+    (*input_lexeme)=(struct lexemeInfo*) malloc(sizeof(struct lexemeInfo));
+	(*input_lexeme)->my_type = my_type;
+}
+
