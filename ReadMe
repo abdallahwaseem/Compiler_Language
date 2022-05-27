@@ -18,3 +18,17 @@ ex:
 
     but we allowed it in the right context as if(x>y) , while(x>y) , f1(x>y) , ...
 
+
+-----------------------------------
+in switch cases 
+we assumed each case is a new scope
+case 1 :
+    int x = 10; 
+    break;
+case 2 : 
+    x = 5;  <------ error !
+    break;
+
+so here x is defined in case 1 only and cant use it in case 2 
+
+-----------------------------------
