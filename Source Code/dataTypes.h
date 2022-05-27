@@ -20,19 +20,23 @@ typedef enum
     // so i made bool and const bool of same rank and so on
     // i ranked them here because we will use that in implicit type conversion
     BOOL_DT,
-    Const_BOOL_DT,
+    CONST_BOOL_DT,
     CHAR_DT,
-    Const_CHAR_DT,
+    CONST_CHAR_DT,
     INT_DT,
-    Const_INT_DT,
+    CONST_INT_DT,
     FLOAT_DT,
-    Const_FLOAT_DT,
+    CONST_FLOAT_DT,
     STRING_DT,
-    Const_STRING_DT,
-    function_Datatype_DT
+    CONST_STRING_DT
     // last ones are the highest in rank
 } DataTypes;
 
+struct function_Datatype
+{
+    DataTypes **inputs; // array of inputs in right hand side
+    DataTypes *output;  // the output datatype; not array since we have one output
+};
 
 struct lexemeInfo{
     int intValue;
@@ -48,3 +52,9 @@ void set_lexemeInfo(struct lexemeInfo** input_lexeme, DataTypes my_type){
 	(*input_lexeme)->my_type = my_type;
 }
 
+
+struct argument_info {
+    DataTypes my_type;
+    char* my_name;
+    struct argument_info* next_arg; // points to next arguments in linked list
+};
