@@ -2,11 +2,11 @@
 
 struct scope
 {
-    struct variable_entry *my_table ; // current table in this scope
-    struct scope *my_parent ;      // ptr to my parent scope
+    struct variable_entry *my_table; // current table in this scope
+    struct scope *my_parent;         // ptr to my parent scope
 };
 
-// since we cant initialize inside the struct 
+// since we cant initialize inside the struct
 // we will make an initializer function that initialize struct and return it
 struct scope initialize_scope()
 {
@@ -17,7 +17,7 @@ struct scope initialize_scope()
 }
 
 // setting parent of a scope
-void set_parent_of_scope(struct scope* my_scope, struct scope* in_my_parent)
+void set_parent_of_scope(struct scope *my_scope, struct scope *in_my_parent)
 {
     my_scope->my_parent = in_my_parent;
     return;
@@ -51,7 +51,6 @@ struct variable_entry *find_variable_in_scope(struct scope *my_scope, char *vari
     return NULL;
 }
 
-
 RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype)
 {
     // making a new variable
@@ -76,4 +75,3 @@ RETURN_CODES assign_previously_declared_variable_in_scope(struct scope *my_scope
     // calling the function in the symboltable file
     return assign_previously_declared_variable(&my_scope->my_table, variable_name);
 }
-
