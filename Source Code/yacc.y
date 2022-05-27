@@ -336,11 +336,11 @@ Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {
 
 // we made switch take a no (int , float ,.. ) or a fn call which returns int
 // will check that later
-Switch_Case : SWITCH Number_Declaration OCBRACKET Case_Expressions CCBRACKET
-			| SWITCH ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
+Switch_Case : SWITCH  Number_Declaration OCBRACKET Case_Expressions CCBRACKET 
+			| SWITCH  ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
 			;
 
-Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
+Case_Expressions : CASE INT COLON {enter_new_scope();} statements BREAK SEMICOLON {exit_a_scope();} Case_Expressions
 				|	DEFAULT COLON statements 
 				|	// since we can have no default or any case (tested on C++)
 				;
@@ -350,7 +350,7 @@ Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
 IF ELSE Case
 https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
 */
-IF_Statement : IF ORBRACKET EXPRESSION CRBRACKET stmt endCondition {printf("IF_Statement");}
+IF_Statement : IF {enter_new_scope();} ORBRACKET EXPRESSION CRBRACKET stmt endCondition {exit_a_scope();}
 			;
 
 endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
