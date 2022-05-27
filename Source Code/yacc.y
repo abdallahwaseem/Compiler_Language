@@ -7,6 +7,7 @@
 	char charValue;                
     char* stringValue;
 	int boolValue;
+	struct lexemeInfo * information;
 }
 
 // Tokens for brackets
@@ -110,6 +111,9 @@
 // token DEFAULT
 	%token DEFAULT
 
+%type <intValue> Type_Identifier   
+%type <information> Number_Declaration EXPRESSION Data_Types Boolean_Expression Function_Calls
+
 %nonassoc IFX
 %nonassoc ELSE
 %nonassoc UMINUS
@@ -162,17 +166,21 @@ EXPRESSION: Data_Types {printf("expression datatype\n");}
 		|	Function_Calls	{printf("function call\n");}
 		;
 
-Number_Declaration: FLOAT 	{printf("float\n");}
+Number_Declaration: FLOAT 	{$$=(struct lexemeInfo*) malloc(sizeof(struct lexemeInfo));
+$$->my_type = FLOAT_DT;
+$$->floatValue = $1;
+
+}
 				|	INT 	{printf("int \n");}
 				|   IDENTIFIER {printf("variable\n");}
-				| 	Number_Declaration PLUS Number_Declaration {$$ = $1 + $3;printf("addition operation %d \n",$$);}			
-				| 	Number_Declaration MINUS Number_Declaration {$$ = $1 - $3;printf("subtraction operation %d \n",$$);}
-				| 	Number_Declaration DIVIDE Number_Declaration {$$ = $1 / $3; printf("division operation %d \n",$$);}
-				| 	Number_Declaration MULTIPLY Number_Declaration {$$ = $1 * $3; printf("Multiplication operation %d \n",$$);}
-				| 	Number_Declaration REM Number_Declaration {$$ = $1 % $3; printf("remainder operation %d \n",$$);}
-				| 	Number_Declaration POWER Number_Declaration {$$ = pow($1,$3); printf("power operation %d \n",$$);}
+				| 	Number_Declaration PLUS Number_Declaration {/* $1 */}			
+				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation \n");}
+				| 	Number_Declaration DIVIDE Number_Declaration { printf("division operation \n");}
+				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation \n");}
+				| 	Number_Declaration REM Number_Declaration { printf("remainder operation \n");}
+				| 	Number_Declaration POWER Number_Declaration { printf("power operation \n");}
 				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets\n");}
-				| 	'-' Number_Declaration %prec UMINUS {$$ = -$2; printf("-ve number %d \n",$$);}
+				| 	'-' Number_Declaration %prec UMINUS { printf("-ve number \n");}
 				;
 
 
@@ -238,11 +246,12 @@ Type_Identifier:  INT {current_DT = INT_DT;  printf("integer type\n");}
 
 
 FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();} 
-			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();}
+			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Void_Function_Scope {exit_a_scope();}
 			;
 
-Function_Scope: Scope
-			| OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 
+Function_Scope:	OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	
+			;
+Void_Function_Scope:  Scope
 			| OCBRACKET statements RET SEMICOLON CCBRACKET 	
 			;
 
