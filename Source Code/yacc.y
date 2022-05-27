@@ -106,12 +106,19 @@
 
 %{  
 	#include <stdio.h>   
+	#include "scope.h"
+
 	int yyerror(char *);
 	int yylex(void);
 	extern int yylineno ;
   	extern char* yytext;
 	FILE * f1;
 	extern FILE * yyin;
+	struct scope* current_scope ;
+	struct scope* parent_scope ;
+	void enter_new_scope();
+	void exit_a_scope();
+
 %}
 
 
@@ -216,7 +223,8 @@ Type_Identifier:  INT {printf("integer type\n");}
 // Function declaration - added void option
 // in void we can return or not 
 // while in any other return type fn , we must return expression ; 
-FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {printf("function declaration \n");}
+
+FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {enter_new_scope();}
 			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Scope {printf("function declaration \n");}
 			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {printf("function declaration \n");}
 			;
@@ -263,8 +271,23 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 %% 
  int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
  
+ void enter_new_scope(){
+	struct scope * tempCurrent = current_scope;
+	current_scope = (struct scope *)malloc(sizeof(struct scope));    
+    (*current_scope) = initialize_scope();
+    set_parent_of_scope(current_scope,tempCurrent);
+ }
+
+ void exit_a_scope(){
+	parent_scope = parent_scope->my_parent;
+	current_scope =  delete_scope(current_scope);
+	return;
+ }
+
+
  int main(void) {
-	
+
+    
 	yyin = fopen("input.txt", "r");
  
 	f1=fopen("output.txt","w");
