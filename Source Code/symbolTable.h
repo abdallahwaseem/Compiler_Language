@@ -6,11 +6,14 @@ struct variable_entry
 {
     char *variable_name; // we will use the name of variable as key
     DataTypes my_datatype;
+    // for variables, it will be datatypes
+    // for functions, it will be ouput
+
     int is_initialized; // 0 : uninit , 1 : init
     Kind my_kind ; // function , parameter , variable
     // for unused variables we will give warnings bec its not used through the whole program
     int is_used; // 0 : unused , 1 : used
-    struct function_Datatype* params; // parameters for function -> will be used only if kind is function
+    DataTypes *params;  // the input params to function
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
