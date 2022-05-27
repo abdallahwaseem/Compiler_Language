@@ -90,3 +90,8 @@ struct scope* delete_scope(struct scope *my_scope)
     delete_all(my_scope);
     return my_scope->my_parent;
 }
+
+
+void print_symbol_table_in_scope(struct scope *my_scope){
+    print_symbol_table(&my_scope->my_table);
+}

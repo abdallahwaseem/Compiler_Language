@@ -1,4 +1,5 @@
 #include "uthash.h"
+#include<stdio.h>
 typedef enum 
 {
     FUNCTION,
@@ -144,3 +145,15 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
 // x = 11; -> error
 // handled successfully in assign_previously_declared_variable function above
 ///////////////////////////////////////////////////////////////////////////////////////////////
+
+
+void print_symbol_table(struct variable_entry **symbolTable)
+{
+	printf("\n-------------------PRINTING SYMBOL TABLE--------------------\n");
+	struct variable_entry *temp;
+
+	for (temp = *symbolTable; temp != NULL; temp = (struct variable_entry*)(temp->hh.next)) {
+		printf("%s", temp->variable_name);
+	}
+	printf("\n");
+}
