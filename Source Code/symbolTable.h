@@ -20,17 +20,17 @@ typedef enum
     // rank is: BOOL,CHAR,INT,FLOAT
     // so i made bool and const bool of same rank and so on
     // i ranked them here because we will use that in implicit type conversion
-    BOOL,
-    Const_BOOL,
-    CHAR,
-    Const_CHAR,
-    INT,
-    Const_INT,
-    FLOAT,
-    Const_FLOAT,
-    STRING,
-    Const_STRING,
-    function_Datatype
+    BOOL_DT,
+    Const_BOOL_DT,
+    CHAR_DT,
+    Const_CHAR_DT,
+    INT_DT,
+    Const_INT_DT,
+    FLOAT_DT,
+    Const_FLOAT_DT,
+    STRING_DT,
+    Const_STRING_DT,
+    function_Datatype_DT
     // last ones are the highest in rank
 } DataTypes;
 
@@ -85,7 +85,7 @@ RETURN_CODES add_variable_to_symbolTable(struct variable_entry **symbolTable, st
     // const int x;
     // 	x = 10;
     // this is an error so we must check this within declaration
-    if (variable_to_add->my_datatype == Const_INT || variable_to_add->my_datatype == Const_FLOAT || variable_to_add->my_datatype == Const_CHAR || variable_to_add->my_datatype == Const_STRING)
+    if (variable_to_add->my_datatype == Const_INT_DT || variable_to_add->my_datatype == Const_FLOAT_DT || variable_to_add->my_datatype == Const_CHAR_DT || variable_to_add->my_datatype == Const_STRING_DT)
     {
         // if type is constant we will check if not initialized this is error
         if (variable_to_add->is_initialized == 0)
@@ -120,7 +120,7 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
     // const int x = 10;
     // x = 11; -> error
     // handled successfully in assign_previously_declared_variable function above
-    if (variable_to_set->my_datatype == Const_INT || variable_to_set->my_datatype == Const_FLOAT || variable_to_set->my_datatype == Const_CHAR || variable_to_set->my_datatype == Const_STRING || variable_to_set->my_datatype == Const_BOOL)
+    if (variable_to_set->my_datatype == Const_INT_DT || variable_to_set->my_datatype == Const_FLOAT_DT || variable_to_set->my_datatype == Const_CHAR_DT || variable_to_set->my_datatype == Const_STRING_DT || variable_to_set->my_datatype == Const_BOOL_DT)
     {
         // if type is constant we cant reassign it
         return CONSTANT_REASSIGNMENT;

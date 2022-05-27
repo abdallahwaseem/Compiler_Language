@@ -106,12 +106,19 @@
 
 %{  
 	#include <stdio.h>   
+	#include "scope.h"
+
 	int yyerror(char *);
 	int yylex(void);
 	extern int yylineno ;
   	extern char* yytext;
 	FILE * f1;
 	extern FILE * yyin;
+	struct scope* current_scope ;
+	struct scope* parent_scope ;
+	void enter_new_scope();
+	void exit_a_scope();
+
 %}
 
 
@@ -130,7 +137,7 @@ stmt:
 	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 	|	IF_Statement
-	|	Scope	
+	|	{enter_new_scope();} Scope {exit_a_scope();}
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
@@ -197,12 +204,12 @@ Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding 
 				|   	IDENTIFIER DECREMENT {printf("decremening number \n");}
 				; 
 
-Scope:	OCBRACKET statements CCBRACKET 	{printf("block scope \n");}
+Scope: OCBRACKET statements CCBRACKET {printf("entered scope-> \n");} 	 
 	;
 
-LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET Scope {printf("for loop \n");}
-	|  WHILE Boolean_Expression Scope {printf("while loop \n");}
-	|  DO Scope WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
+LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
+	|  WHILE Boolean_Expression {enter_new_scope();} Scope {exit_a_scope();}
+	|  DO {enter_new_scope();} Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
 	;
 
 Type_Identifier:  INT {printf("integer type\n");}
@@ -216,13 +223,16 @@ Type_Identifier:  INT {printf("integer type\n");}
 // Function declaration - added void option
 // in void we can return or not 
 // while in any other return type fn , we must return expression ; 
-FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {printf("function declaration \n");}
-			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Scope {printf("function declaration \n");}
-			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET Function_Scope {printf("function declaration \n");}
+
+
+
+FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();} 
+			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();}
 			;
 
-Function_Scope: OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	{printf("fn scope \n");}
-			| OCBRACKET statements RET SEMICOLON CCBRACKET 	{printf("fn scope \n");}
+Function_Scope: Scope
+			| OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 
+			| OCBRACKET statements RET SEMICOLON CCBRACKET 	
 			;
 
 ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{printf("function arguments \n");}
@@ -263,8 +273,34 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 %% 
  int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
  
+ void enter_new_scope(){
+	printf("enter scope \n");
+
+	// setting the parent to currnt scope
+	parent_scope = current_scope;
+	// make the new scope by malloc
+ 	current_scope = (struct scope *)malloc(sizeof(struct scope)); 
+ 	// calling initialize fn in scope.h
+	(*current_scope) = initialize_scope();
+	// updating my parent
+ 	set_parent_of_scope(current_scope,parent_scope);
+ }
+
+ void exit_a_scope(){
+	printf("left scope \n");
+	// if there's parent, will set it to grandparent
+	// not all cases we will have parent since at first and last scope it will be null
+	if(parent_scope)
+		parent_scope = parent_scope->my_parent;
+	// delete_scope fn return the parent of current scope  
+	current_scope =  delete_scope(current_scope);
+	return;
+ }
+
+
  int main(void) {
-	
+
+    
 	yyin = fopen("input.txt", "r");
  
 	f1=fopen("output.txt","w");

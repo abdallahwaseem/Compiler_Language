@@ -5,7 +5,7 @@ int main(int argc, char *argv[]) {
     
     struct scope mainScope = initialize_scope();
 
-    RETURN_CODES op1 = add_variable_to_scope(&mainScope, "x", 1,INT);
+    RETURN_CODES op1 = add_variable_to_scope(&mainScope, "x", 1,INT_DT);
     if(op1 == SUCCESS){
         printf("added successfully\n");
     }
