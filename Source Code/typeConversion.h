@@ -2,8 +2,8 @@
 
 struct converter
 {
-    DataTypes *inputs; // array of inputs in right hand side
-    DataTypes output;  // the output datatype; not array since we have one output
+    DataTypes **inputs; // array of inputs in right hand side
+    DataTypes *output;  // the output datatype; not array since we have one output
 };
 
 typedef enum
@@ -13,7 +13,7 @@ typedef enum
     EVAL_THEN_UPGRADE_RHS
 } OperationsToDo;
 
-struct converter initialize_converter(DataTypes *in_inputs, DataTypes in_outputs)
+struct converter initialize_converter(DataTypes **in_inputs, DataTypes *in_outputs)
 {
     struct converter my_converter;
     my_converter.inputs = in_inputs;
@@ -25,7 +25,7 @@ RETURN_CODES check_both_sides(struct converter *my_converter)
 {
     for (size_t i = 0; i < sizeof(my_converter->inputs) / sizeof(my_converter->inputs[0]); i++)
     {
-        if (my_converter->inputs[i] == my_converter->output)
+        if (*my_converter->inputs[i] == *my_converter->output)
             return FAILURE;
     }
     return SUCCESS;
@@ -46,19 +46,22 @@ OperationsToDo implicit_conversion(struct converter *my_converter)
     DataTypes highest_rank;
     for (size_t i = 0; i < sizeof(my_converter->inputs) / sizeof(my_converter->inputs[0]); i++)
     {
-        highest_rank = __max(highest_rank, my_converter->inputs[i]);
+        highest_rank = __max(highest_rank, *my_converter->inputs[i]);
     }
 
     // then we need to promote lower ranks to that rank
+    // bool b  = (int c) + (char d)
     for (size_t i = 0; i < sizeof(my_converter->inputs) / sizeof(my_converter->inputs[0]); i++)
     {
-        my_converter->inputs[i] = highest_rank;
+        *my_converter->inputs[i] = highest_rank;
     }
+    // new ranks
+    // bool b  = (int c) + (int d)
 
     // now we know rank of the right hand side of the assignment then we have 2 cases :
     // Promoting implies that the right expression is of lower rank.
     // Demoting implies that the right expression is of higher rank.
-    if (highest_rank <= my_converter->output)
+    if (highest_rank <= *my_converter->output)
     {
         // so output rank is higher, so no problem in that
         // example :
@@ -79,7 +82,8 @@ OperationsToDo implicit_conversion(struct converter *my_converter)
         // b = c;     // value of b is 1 (true)
         // so we casted the right hand side to the upper datatype
         // TODO VERY IMPORTANT
-        // we must evaluate first ex: bool b = 2 - 1;
+        // we must evaluate first 
+        // ex: bool b = 2 - 1; // this should evaluate to true
         // the result = bool(2-1) = bool(1) = 1
         // not bool(2) - bool(1) = 1 - 1 = 0
         return EVAL_THEN_DOWNGRADE_RHS;
