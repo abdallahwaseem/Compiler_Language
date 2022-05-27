@@ -135,6 +135,8 @@
 	void enter_new_scope();
 	void exit_a_scope();
 
+	struct variable_entry * current_identifier;
+
 %}
 
 
@@ -146,8 +148,8 @@ statements: statements stmt
 			|		
 			;
 		
-stmt:   Type_Identifier IDENTIFIER  SEMICOLON {printf("%s heree\n",$2);} 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable Declaration\n");} 
+stmt:   Type_Identifier IDENTIFIER SEMICOLON {}  
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {printf("Variable Declaration\n");}
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");} 
 	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
@@ -166,14 +168,21 @@ EXPRESSION: Data_Types {printf("expression datatype\n");}
 		|	Function_Calls	{printf("function call\n");}
 		;
 
-Number_Declaration: FLOAT 	{$$=(struct lexemeInfo*) malloc(sizeof(struct lexemeInfo));
-$$->my_type = FLOAT_DT;
-$$->floatValue = $1;
+Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
+				
+				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1;}
 
-}
-				|	INT 	{printf("int \n");}
-				|   IDENTIFIER {printf("variable\n");}
-				| 	Number_Declaration PLUS Number_Declaration {/* $1 */}			
+				|   IDENTIFIER { 
+						current_identifier = find_variable_in_scope(current_scope,$1);
+						if(current_identifier == NULL){
+							yyerror("identifier not initialzed in this scope");
+						}
+						set_lexemeInfo(&$$,current_identifier->my_datatype);
+						$$->stringValue = $1;
+					}
+
+				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation \n");}			
+				
 				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation \n");}
 				| 	Number_Declaration DIVIDE Number_Declaration { printf("division operation \n");}
 				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation \n");}
@@ -185,10 +194,10 @@ $$->floatValue = $1;
 
 
 Data_Types: Number_Declaration {printf("number declaration or identifier \n");}
-			|	TRUE			{printf("Boolean Datatype \n");}
-			|	FALSE			{printf("Boolean Datatype \n");}
-			| 	CHAR			{printf("Character Datatype \n");}
-			| 	STRING			{printf("String Datatype \n");}
+			|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = $1;}
+			|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = $1;}
+			| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->boolValue = $1;}
+			| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->boolValue = $1;}
 			;
 
 /* defining boolean expression */
