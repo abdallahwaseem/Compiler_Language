@@ -107,7 +107,7 @@
 %{  
 	#include <stdio.h>   
 	#include "scope.h"
-
+	#include <math.h>
 	int yyerror(char *);
 	int yylex(void);
 	extern int yylineno ;
@@ -116,6 +116,8 @@
 	extern FILE * yyin;
 	struct scope* current_scope ;
 	struct scope* parent_scope ;
+	int current_DT;
+	
 	void enter_new_scope();
 	void exit_a_scope();
 
@@ -131,8 +133,13 @@ statements: statements stmt
 			;
 		
 stmt:   
-		Type_Identifier IDENTIFIER  SEMICOLON {printf("Undeclared Variable \n");} 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable Declaration\n");} 
+		Type_Identifier IDENTIFIER  SEMICOLON {
+
+			printf("The character value = %s %s %s", $1,$2,$3);
+			//add_variable_to_scope(current_scope,(char)$$ ,0,current_DT);
+			
+			} 
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("printing %f and %d",$1,$2);} 
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");} 
 	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
@@ -152,16 +159,16 @@ EXPRESSION: Data_Types {printf("expression datatype\n");}
 		;
 
 Number_Declaration: FLOAT 	{printf("float\n");}
-				|	INT 	{printf("int \n");}
+				|	INT 	{printf("int \n");}+
 				|   IDENTIFIER {printf("variable\n");}
-				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation\n");}
-				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation\n");}
-				| 	Number_Declaration DIVIDE Number_Declaration {printf("division operation\n");}
-				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation\n");}
-				| 	Number_Declaration REM Number_Declaration {printf("remainder operation\n");}
-				| 	Number_Declaration POWER Number_Declaration {printf("power operation\n");}
+				| 	Number_Declaration PLUS Number_Declaration {$$ = $1 + $3;printf("addition operation %d \n",$$);}			
+				| 	Number_Declaration MINUS Number_Declaration {$$ = $1 - $3;printf("subtraction operation %d \n",$$);}
+				| 	Number_Declaration DIVIDE Number_Declaration {$$ = $1 / $3; printf("division operation %d \n",$$);}
+				| 	Number_Declaration MULTIPLY Number_Declaration {$$ = $1 * $3; printf("Multiplication operation %d \n",$$);}
+				| 	Number_Declaration REM Number_Declaration {$$ = $1 % $3; printf("remainder operation %d \n",$$);}
+				| 	Number_Declaration POWER Number_Declaration {$$ = pow($1,$3); printf("power operation %d \n",$$);}
 				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets\n");}
-				| 	'-' Number_Declaration %prec UMINUS {printf("-ve number");}
+				| 	'-' Number_Declaration %prec UMINUS {$$ = -$2; printf("-ve number %d \n",$$);}
 				;
 
 
@@ -212,11 +219,11 @@ LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CR
 	|  DO {enter_new_scope();} Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
 	;
 
-Type_Identifier:  INT {printf("integer type\n");}
-				| FLOAT {printf("float type\n");}
-				| CHAR  {printf("char type\n");}
-				| STRING{printf("string type\n");}
-				| BOOL {printf("boolean type\n");}
+Type_Identifier:  INT {current_DT =4;  printf("integer type\n");}
+				| FLOAT {current_DT =7; printf("float type\n");}
+				| CHAR  {current_DT =2; printf("char type\n");}
+				| STRING{current_DT =9;printf("string type\n");}
+				| BOOL {current_DT =0;printf("boolean type\n");}
 				;
 		
 
