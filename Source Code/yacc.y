@@ -58,6 +58,7 @@
 
 // Tokens for primitive data types
 	%token INT
+	%token BOOL
 	%token FLOAT
 	%token CHAR
 	%token STRING
@@ -208,6 +209,7 @@ Type_Identifier:  INT {printf("integer type\n");}
 				| FLOAT {printf("float type\n");}
 				| CHAR  {printf("char type\n");}
 				| STRING{printf("string type\n");}
+				| BOOL {printf("boolean type\n");}
 				;
 		
 
@@ -259,7 +261,7 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 
 
 %% 
- int yyerror(char *s) {  int lineno=++yylineno;   fprintf(stderr, "line number : %d %s\n", lineno,s);     return 0; }
+ int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
  
  int main(void) {
 	

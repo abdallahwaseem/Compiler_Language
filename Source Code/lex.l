@@ -55,6 +55,7 @@
 "continue"										return CONTINUE;
 
 "int"											          return INT;
+"bool"											          return BOOL;
 "float"											        return FLOAT;
 "char"											        return CHAR;
 "string"										        return STRING;
@@ -74,7 +75,7 @@
 \'.\'										          	return CHAR;
 [a-zA-Z][_a-zA-Z0-9]*						  	return IDENTIFIER; 	
 [\t  ]+											        /* ignore whitespace */;
-[\n]											          {yylineno = yylineno+1;}
+[\n]											          {}
 
 
 %% 
