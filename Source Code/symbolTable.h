@@ -1,33 +1,38 @@
 #include "uthash.h"
-typedef enum
+enum Kind
 {
     FUNCTION,
     PARAMETER,
     VARIABLE
-} Kind;
+};
 
-typedef enum
+enum RETURN_CODES
 {
     SUCCESS,
     FAILURE,
     CONSTANT_NOT_INITIALIZED,
     CONSTANT_REASSIGNMENT
-} RETURN_CODES;
+};
 
-typedef enum
+enum DataTypes
 {
-    INT,
+    // first ones are the lowest in rank
+    // rank is: BOOL,CHAR,INT,FLOAT
+    // so i made bool and const bool of same rank and so on
+    // i ranked them here because we will use that in implicit type conversion
     BOOL,
-    FLOAT,
-    CHAR,
-    STRING,
-    Const_INT,
     Const_BOOL,
-    Const_FLOAT,
+    CHAR,
     Const_CHAR,
+    INT,
+    Const_INT,
+    FLOAT,
+    Const_FLOAT,
+    STRING,
     Const_STRING,
     function_Datatype
-} DataTypes;
+    // last ones are the highest in rank
+};
 
 struct function_Datatype
 {
