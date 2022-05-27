@@ -1,5 +1,4 @@
 #include "uthash.h"
-
 typedef enum
 {
     FUNCTION,
@@ -46,34 +45,33 @@ struct variable_entry
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
-
-struct variable_entry *symbolTable;
-
-
-struct variable_entry *find_variable_in_symbolTable(struct variable_entry *symbolTable, char *variable_to_find)
+struct variable_entry *find_variable_in_symbolTable(struct variable_entry **symbolTable, char *variable_to_find)
 {
 
-    struct variable_entry *variable;
-    HASH_FIND_STR(symbolTable, variable_to_find, variable);
-    return variable;
+    struct variable_entry *variable = NULL;
+    HASH_FIND_STR(*symbolTable, "x", variable);
+
+    if (variable != NULL)
+        return variable;
+    else
+        return NULL;
 }
 
 // add a new variable to symboltable
 // whether he wrote
 // int x; or int x = 10;
 // we will save whether he initialized it or not from yacc file
-#include <stdio.h>
-RETURN_CODES add_variable_to_symbolTable(struct variable_entry *symbolTable, struct variable_entry *variable_to_add)
+RETURN_CODES add_variable_to_symbolTable(struct variable_entry **symbolTable, struct variable_entry *variable_to_add)
 {
 
     // first we need to check if it exist before
+
     if (find_variable_in_symbolTable(symbolTable, variable_to_add->variable_name) != NULL)
     {
         // therefore multiple definition
         return FAILURE;
     }
 
-    printf("1");
     // FOR CONSTANTS
     // we have special case to handle
     // 1: any constant must be initialized within the same line of declaration
@@ -86,14 +84,12 @@ RETURN_CODES add_variable_to_symbolTable(struct variable_entry *symbolTable, str
         if (variable_to_add->is_initialized == 0)
             return CONSTANT_NOT_INITIALIZED;
     }
-    printf("2");
     // otherwise its safe to add
-    HASH_ADD_STR(symbolTable, variable_name, variable_to_add);
-    printf("3");
+    HASH_ADD_STR(*symbolTable, variable_name, variable_to_add);
     return SUCCESS;
 }
 
-RETURN_CODES set_variable_used(struct variable_entry *symbolTable, char *variable_name)
+RETURN_CODES set_variable_used(struct variable_entry **symbolTable, char *variable_name)
 {
 
     struct variable_entry *variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
@@ -107,7 +103,7 @@ RETURN_CODES set_variable_used(struct variable_entry *symbolTable, char *variabl
 
 // if he initialized x in that way -> int x;
 // x= 10 ; --> should set x to be assigned to avoid sending error of uninitialzied variable
-RETURN_CODES assign_previously_declared_variable(struct variable_entry *symbolTable, char *variable_name)
+RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolTable, char *variable_name)
 {
     struct variable_entry *variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
     if (variable_to_set == NULL)
