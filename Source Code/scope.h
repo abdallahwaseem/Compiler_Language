@@ -75,3 +75,18 @@ RETURN_CODES assign_previously_declared_variable_in_scope(struct scope *my_scope
     // calling the function in the symboltable file
     return assign_previously_declared_variable(&my_scope->my_table, variable_name);
 }
+
+void delete_all(struct scope *my_scope) {
+  struct variable_entry *current_entry, *tmp;
+
+  HASH_ITER(hh, my_scope->my_table, current_entry, tmp) {
+    HASH_DEL(my_scope->my_table, current_entry);  /* delete; users advances to next */
+    free(current_entry);             /* optional- if you want to free  */
+  }
+}
+
+struct scope* delete_scope(struct scope *my_scope)
+{
+    delete_all(my_scope)
+    return my_scope.my_parent;
+}
