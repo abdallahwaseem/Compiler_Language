@@ -1,20 +1,20 @@
 #include "uthash.h"
-enum Kind
+typedef enum 
 {
     FUNCTION,
     PARAMETER,
     VARIABLE
-};
+} Kind;
 
-enum RETURN_CODES
+typedef enum 
 {
     SUCCESS,
     FAILURE,
     CONSTANT_NOT_INITIALIZED,
     CONSTANT_REASSIGNMENT
-};
+} RETURN_CODES;
 
-enum DataTypes
+typedef enum 
 {
     // first ones are the lowest in rank
     // rank is: BOOL,CHAR,INT,FLOAT
@@ -32,7 +32,7 @@ enum DataTypes
     Const_STRING,
     function_Datatype
     // last ones are the highest in rank
-};
+} DataTypes;
 
 struct function_Datatype
 {

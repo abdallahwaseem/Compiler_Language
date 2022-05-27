@@ -6,12 +6,12 @@ struct converter
     DataTypes output;  // the output datatype; not array since we have one output
 };
 
-enum OperationsToDo
+typedef enum
 {
     NONE,
     EVAL_THEN_DOWNGRADE_RHS,
     EVAL_THEN_UPGRADE_RHS
-};
+} OperationsToDo;
 
 struct converter initialize_converter(DataTypes *in_inputs, DataTypes in_outputs)
 {
