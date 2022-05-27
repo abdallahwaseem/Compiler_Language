@@ -37,7 +37,6 @@ struct variable_entry *find_variable_in_scope(struct scope *my_scope, char *vari
 
 RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype)
 {
-    printf("12121");
     // making a new variable
     struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
 
