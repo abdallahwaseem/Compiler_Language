@@ -139,6 +139,9 @@
 	void enter_new_scope();
 	void exit_a_scope();
 	DataTypes* get_parameters_of_array(struct argument_info*);
+	void add_parameters_to_function_symbol_table(DataTypes*, struct argument_info*);
+
+	// variables to use through the code to check semantics
 	struct variable_entry * current_identifier;
 	RETURN_CODES current_return_code;
 %}
@@ -160,7 +163,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 											}  
 
 	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE,NULL) == FAILURE)
-																	yyerror_with_variable("Redefinition of variable ", $2);
+																		yyerror_with_variable("Redefinition of variable ", $2);
 																}
 
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
@@ -194,9 +197,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 						current_identifier = find_variable_in_scope(current_scope,$1);
 						if(current_identifier == NULL){
 							yyerror("identifier not initialzed in this scope");
+						}else{
+							set_lexemeInfo(&$$,current_identifier->my_datatype);
+							$$->stringValue = $1;
 						}
-						set_lexemeInfo(&$$,current_identifier->my_datatype);
-						$$->stringValue = $1;
 					}
 
 				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation \n");}			
@@ -250,7 +254,7 @@ Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding 
 				|   	IDENTIFIER DECREMENT {printf("decremening number \n");}
 				; 
 
-Scope: OCBRACKET statements CCBRACKET {printf("entered scope-> \n");} 	 
+Scope: OCBRACKET statements CCBRACKET {printf("");} 	 
 	;
 
 LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
@@ -278,28 +282,30 @@ Type_Identifier:  INT {$$ = INT_DT; }
 
 
 FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
-					enter_new_scope(); // entering a new scope
 					//getting arguments of these function
 					DataTypes* arguments_list = get_parameters_of_array($4);
 					// adding function to the symbol table
-					current_return_code =add_variable_to_scope(current_scope, $2, 0, $1,VARIABLE,arguments_list);
+					current_return_code = add_variable_to_scope(current_scope, $2, 0, $1, VARIABLE, arguments_list);
 					if(current_return_code == FAILURE){
-						exit_a_scope();
 						yyerror_with_variable("Redefinition of function ", $2);
 					}
-								} Function_Scope {exit_a_scope();} 
+					enter_new_scope(); // entering a new scope
+					// we add parameters to symbol table after making new scope
+					add_parameters_to_function_symbol_table(arguments_list, $4);
+								} Function_Scope {print_symbol_table(&(current_scope)->my_table); exit_a_scope();} 
 
 			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
-					enter_new_scope(); // entering a new scope
 					//getting arguments of these function
 					DataTypes* arguments_list = get_parameters_of_array($4);
 					// adding function to the symbol table
-					current_return_code =add_variable_to_scope(current_scope, $2, 0, VOID_DT, VARIABLE, arguments_list);
+					current_return_code = add_variable_to_scope(current_scope, $2, 0, VOID_DT, VARIABLE, arguments_list);
 					if(current_return_code == FAILURE){
-						exit_a_scope();
 						yyerror_with_variable("Redefinition of function ", $2);
 					}
-								} Void_Function_Scope {exit_a_scope();}
+					enter_new_scope(); // entering a new scope
+					// we add parameters to symbol table after making new scope
+					add_parameters_to_function_symbol_table(arguments_list, $4);
+								} Void_Function_Scope {print_symbol_table(&(current_scope)->my_table); exit_a_scope();}
 			;
 
 Function_Scope:	OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	
@@ -329,9 +335,10 @@ Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {
 						current_identifier = find_variable_in_scope(current_scope,$1);
 						if(current_identifier == NULL){
 							yyerror("function not initialzed in this scope");
+						}else{
+							set_lexemeInfo(&$$,current_identifier->my_datatype);
+							$$->stringValue = $1;
 						}
-						set_lexemeInfo(&$$,current_identifier->my_datatype);
-						$$->stringValue = $1;
 					}
 
 // we made switch take a no (int , float ,.. ) or a fn call which returns int
@@ -350,10 +357,10 @@ Case_Expressions : CASE INT COLON {enter_new_scope();} statements BREAK SEMICOLO
 IF ELSE Case
 https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
 */
-IF_Statement : IF {enter_new_scope();} ORBRACKET EXPRESSION CRBRACKET stmt endCondition {exit_a_scope();}
+IF_Statement : IF  ORBRACKET EXPRESSION CRBRACKET stmt endCondition 
 			;
 
-endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
+endCondition: %prec IFX | ELSE  stmt
 			;
 
 
@@ -387,16 +394,27 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
  DataTypes* get_parameters_of_array(struct argument_info* temp){
 	int no_of_arguments = 0 ;
 	struct argument_info* start_ptr = temp;
-	while(temp){
+	while(start_ptr){
 		no_of_arguments++;
-		temp = temp->next_arg;
+		start_ptr = start_ptr->next_arg;
 	}
-	temp = start_ptr;
+	start_ptr = temp;
 	// Dynamically allocate memory using malloc()
 	if(no_of_arguments == 0 )
 		return NULL;
 	DataTypes* arguments_list = (DataTypes*)malloc(no_of_arguments * sizeof(DataTypes));
-	for (int i = 0 ; i <no_of_arguments; i++){
+	int i = 0 ;
+	while(start_ptr){
+		arguments_list[i] = start_ptr->my_type;
+		start_ptr = start_ptr->next_arg;
+		i++;
+	}
+	return arguments_list;
+ }
+
+ void add_parameters_to_function_symbol_table(DataTypes* arguments_list,struct argument_info* temp){
+	int i = 0 ;
+	while(temp){
 		// adding each parameter to the symbol table
 		current_return_code = add_variable_to_scope(current_scope, temp->my_name, 0, temp->my_type,PARAMETER,NULL);
 		if(current_return_code == FAILURE)
@@ -405,8 +423,8 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 		}
 		arguments_list[i] = temp->my_type;
 		temp = temp->next_arg;
+		i++;
 	}
-	return arguments_list;
  }
 
  int main(void) {
@@ -428,5 +446,9 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 	
 	fclose(yyin);
 	fclose(f1);
+
+	// clearing the final scope 
+	print_symbol_table(&(current_scope)->my_table);
+	exit_a_scope();
     return 0;
 }
