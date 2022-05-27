@@ -87,6 +87,6 @@ void delete_all(struct scope *my_scope) {
 
 struct scope* delete_scope(struct scope *my_scope)
 {
-    delete_all(my_scope)
+    delete_all(my_scope);
     return my_scope.my_parent;
 }
