@@ -51,8 +51,8 @@ struct variable_entry *find_variable_in_scope(struct scope *my_scope, char *vari
     return NULL;
 }
 
-RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype,Kind kind,
-DataTypes* input_params)
+RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype, Kind kind,
+                                   DataTypes *input_params)
 {
     // making a new variable
     struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
@@ -79,22 +79,24 @@ RETURN_CODES assign_previously_declared_variable_in_scope(struct scope *my_scope
     return assign_previously_declared_variable(&my_scope->my_table, variable_name);
 }
 
-void delete_all(struct scope *my_scope) {
-  struct variable_entry *current_entry, *tmp;
+void delete_all(struct scope *my_scope)
+{
+    struct variable_entry *current_entry, *tmp;
 
-  HASH_ITER(hh, my_scope->my_table, current_entry, tmp) {
-    HASH_DEL(my_scope->my_table, current_entry);  /* delete; users advances to next */
-    free(current_entry);             /* optional- if you want to free  */
-  }
+    HASH_ITER(hh, my_scope->my_table, current_entry, tmp)
+    {
+        HASH_DEL(my_scope->my_table, current_entry); /* delete; users advances to next */
+        free(current_entry);                         /* optional- if you want to free  */
+    }
 }
 
-struct scope* delete_scope(struct scope *my_scope)
+struct scope *delete_scope(struct scope *my_scope)
 {
     delete_all(my_scope);
     return my_scope->my_parent;
 }
 
-
-void print_symbol_table_in_scope(struct scope *my_scope){
+void print_symbol_table_in_scope(struct scope *my_scope)
+{
     print_symbol_table(&my_scope->my_table);
 }

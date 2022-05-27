@@ -1,5 +1,5 @@
 #include "uthash.h"
-#include<stdio.h>
+#include <stdio.h>
 #include "dataTypes.h"
 
 struct variable_entry
@@ -10,10 +10,10 @@ struct variable_entry
     // for functions, it will be ouput
 
     int is_initialized; // 0 : uninit , 1 : init
-    Kind my_kind ; // function , parameter , variable
+    Kind my_kind;       // function , parameter , variable
     // for unused variables we will give warnings bec its not used through the whole program
-    int is_used; // 0 : unused , 1 : used
-    DataTypes *params;  // the input params to function
+    int is_used;       // 0 : unused , 1 : used
+    DataTypes *params; // the input params to function
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
@@ -110,14 +110,14 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
 // handled successfully in assign_previously_declared_variable function above
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-
 void print_symbol_table(struct variable_entry **symbolTable)
 {
-	printf("\n-------------------PRINTING SYMBOL TABLE--------------------\n");
-	struct variable_entry *temp;
+    printf("\n-------------------PRINTING SYMBOL TABLE--------------------\n");
+    struct variable_entry *temp;
 
-	for (temp = *symbolTable; temp != NULL; temp = (struct variable_entry*)(temp->hh.next)) {
-		printf("%s", temp->variable_name);
-	}
-	printf("\n");
+    for (temp = *symbolTable; temp != NULL; temp = (struct variable_entry *)(temp->hh.next))
+    {
+        printf("%s \n", temp->variable_name);
+    }
+    printf("\n");
 }

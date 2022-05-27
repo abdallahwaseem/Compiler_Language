@@ -1,11 +1,11 @@
-typedef enum 
+typedef enum
 {
     FUNCTION,
     PARAMETER,
     VARIABLE
 } Kind;
 
-typedef enum 
+typedef enum
 {
     SUCCESS,
     FAILURE,
@@ -13,7 +13,7 @@ typedef enum
     CONSTANT_REASSIGNMENT
 } RETURN_CODES;
 
-typedef enum 
+typedef enum
 {
     // first ones are the lowest in rank
     // rank is: BOOL,CHAR,INT,FLOAT
@@ -33,26 +33,26 @@ typedef enum
     // last ones are the highest in rank
 } DataTypes;
 
-
-struct lexemeInfo{
+struct lexemeInfo
+{
     int intValue;
     float floatValue;
-	char charValue;                
-    char* stringValue;
-	int boolValue;
+    char charValue;
+    char *stringValue;
+    int boolValue;
     DataTypes my_type;
 };
 
-void set_lexemeInfo(struct lexemeInfo** input_lexeme, DataTypes my_type){
-    (*input_lexeme)=(struct lexemeInfo*) malloc(sizeof(struct lexemeInfo));
-	(*input_lexeme)->my_type = my_type;
+void set_lexemeInfo(struct lexemeInfo **input_lexeme, DataTypes my_type)
+{
+    (*input_lexeme) = (struct lexemeInfo *)malloc(sizeof(struct lexemeInfo));
+    (*input_lexeme)->my_type = my_type;
 }
 
-
 // linked list of arguments
-struct argument_info {
+struct argument_info
+{
     DataTypes my_type;
-    char* my_name;
-    struct argument_info* next_arg; // points to next arguments in linked list
+    char *my_name;
+    struct argument_info *next_arg; // points to next arguments in linked list
 };
-
