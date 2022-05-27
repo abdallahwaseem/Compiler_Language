@@ -32,11 +32,6 @@ typedef enum
     // last ones are the highest in rank
 } DataTypes;
 
-struct function_Datatype
-{
-    DataTypes **inputs; // array of inputs in right hand side
-    DataTypes *output;  // the output datatype; not array since we have one output
-};
 
 struct lexemeInfo{
     int intValue;
@@ -53,8 +48,10 @@ void set_lexemeInfo(struct lexemeInfo** input_lexeme, DataTypes my_type){
 }
 
 
+// linked list of arguments
 struct argument_info {
     DataTypes my_type;
     char* my_name;
     struct argument_info* next_arg; // points to next arguments in linked list
 };
+
