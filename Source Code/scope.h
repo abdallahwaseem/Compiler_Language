@@ -8,15 +8,16 @@ struct scope{
 struct variable_entry* find_variable_in_scope(struct scope* my_scope, char* variable_to_find) {
         struct variable_entry* variable_found = NULL;
         
-        variable_found =  find_variable(my_scope->my_table, variable_to_find);
-
+        // first check if its in the current scope 
+        variable_found =  find_variable_in_symbolTable(my_scope->my_table, variable_to_find);
         if(variable_found != NULL ){
             return variable_found ;
         }
 
+        // if its not in the current scope check our parents iteratively till we reach null
         struct scope* upper_scopes = my_scope->my_parent ;
         while(upper_scopes != NULL){
-            variable_found =  find_variable(upper_scopes->my_table, variable_to_find);
+            variable_found =  find_variable_in_symbolTable(upper_scopes->my_table, variable_to_find);
             if(variable_found != NULL ){
                 return variable_found ;
             }else{
@@ -38,3 +39,16 @@ struct variable_entry* find_variable_in_scope(struct scope* my_scope, char* vari
         new_variable->variable_name = name;
         return add_variable_to_symbolTable(my_scope->my_table,new_variable);
     }
+
+RETURN_CODES set_variable_used_in_scope(struct scope* my_scope, char*variable_name)
+{
+    // calling the function in the symboltable file
+    return set_variable_used(my_scope->my_table, variable_name);
+}
+
+
+RETURN_CODES assign_previously_declared_variable_in_scope(struct scope* my_scope, char*variable_name)
+{
+    // calling the function in the symboltable file
+    return assign_previously_declared_variable(my_scope->my_table, variable_name);
+}
