@@ -4,3 +4,5 @@
 *.txt
 *.exe
 *.output
+*.gch
+
