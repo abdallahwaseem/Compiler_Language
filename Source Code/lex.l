@@ -75,7 +75,7 @@
 \'.\'										          	return CHAR;
 [a-zA-Z][_a-zA-Z0-9]*						  	return IDENTIFIER; 	
 [\t  ]+											        /* ignore whitespace */;
-[\n]											          {yylineno = yylineno+1;}
+[\n]											          {}
 
 
 %% 

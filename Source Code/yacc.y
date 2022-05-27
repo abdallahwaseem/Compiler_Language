@@ -261,7 +261,7 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 
 
 %% 
- int yyerror(char *s) {  int lineno=++yylineno;   fprintf(stderr, "line number : %d %s\n", lineno,s);     return 0; }
+ int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
  
  int main(void) {
 	
