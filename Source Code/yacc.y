@@ -137,7 +137,7 @@ stmt:
 	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 	|	IF_Statement
-	|	Scope
+	|	{enter_new_scope();} Scope {exit_a_scope();}
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
@@ -274,6 +274,8 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
  int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
  
  void enter_new_scope(){
+	printf("enter scope \n");
+
 	// setting the parent to currnt scope
 	parent_scope = current_scope;
 	// make the new scope by malloc
@@ -285,6 +287,7 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
  }
 
  void exit_a_scope(){
+	printf("left scope \n");
 	// if there's parent, will set it to grandparent
 	// not all cases we will have parent since at first and last scope it will be null
 	if(parent_scope)
