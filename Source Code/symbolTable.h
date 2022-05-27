@@ -5,7 +5,7 @@ typedef enum{
 } Kind;
 
 typedef enum{
-    SUCCESS, FAILURE
+    SUCCESS, FAILURE, CONSTANT_NOT_INITIALIZED
 } RETURN_CODES;
 
 typedef enum{
@@ -36,24 +36,68 @@ struct symbolTable{
 };
 
 
-struct variable_entry* find_variable(struct symbolTable *symbolTable, char* variable_to_find) {
+struct variable_entry* find_variable_in_symbolTable(struct symbolTable *symbolTable, char* variable_to_find) {
     
     struct variable_entry * variable;
     HASH_FIND_STR(symbolTable->table, variable_to_find, variable );
     return variable;
 }
 
+// add a new variable to symboltable 
+// whether he wrote 
+// int x; or int x = 10;
+// we will save whether he initialized it or not from yacc file
 RETURN_CODES add_variable_to_symbolTable(struct symbolTable *symbolTable, struct variable_entry * variable_to_add) {
         
     // first we need to check if it exist before
-    if(find_variable(symbolTable, variable_to_add->variable_name) != NULL){
+    if(find_variable_in_symbolTable(symbolTable, variable_to_add->variable_name) != NULL){
         // therefore multiple definition
         return FAILURE;
     }
+    // FOR CONSTANTS
+    // we have special case to handle
+    // 1: any constant must be initialized within the same line of declaration
+            // const int x;
+            // 	x = 10; 
+            // this is an error so we must check this within declaration
+    if(variable_to_add->my_datatype == Const_INT || variable_to_add->my_datatype == Const_FLOAT
+        || variable_to_add->my_datatype == Const_CHAR|| variable_to_add->my_datatype == Const_STRING){
+            // if type is constant we will check if not initialized this is error
+            if(variable_to_add->is_initialized == 0)
+                return CONSTANT_NOT_INITIALIZED;
+    }
 
+    // otherwise its safe to add
     HASH_ADD_STR(symbolTable->table, variable_name, variable_to_add );
     return SUCCESS;
 }
     
+RETURN_CODES set_variable_used(struct symbolTable *symbolTable, char* variable_name){
+
+    struct variable_entry * variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
+    if (variable_to_set == NULL)  return FAILURE;
+    
+    variable_to_set->is_used = 1;
+    
+	return SUCCESS; 
+}
+
+// if he initialized x in that way -> int x;
+// x= 10 ; --> should set x to be assigned to avoid sending error of uninitialzied variable
+RETURN_CODES assign_previously_declared_variable(struct symbolTable *symbolTable, char* variable_name)
+{
+	struct variable_entry * variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
+    if (variable_to_set == NULL)  return FAILURE;
+
+	
+	variable_to_set->is_initialized = 1;
+	return SUCCESS;
+}
 
 
+// CONSTANTS
+// we have 2 cases to handle
+// 1: any constant must be initialized within the same line of declaration
+        // const int x;
+        // 	x = 10; 
+        // this is an error so we must check this within declaration
