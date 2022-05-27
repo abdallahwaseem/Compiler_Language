@@ -8,6 +8,7 @@
     char* stringValue;
 	int boolValue;
 	struct lexemeInfo * information;
+	struct argument_info * argument_info;
 }
 
 // Tokens for brackets
@@ -113,16 +114,20 @@
 
 %type <intValue> Type_Identifier   
 %type <information> Number_Declaration EXPRESSION Data_Types Boolean_Expression Function_Calls
+%type <argument_info> ARGUMENTS
 
 %nonassoc IFX
 %nonassoc ELSE
 %nonassoc UMINUS
 
 %{  
-	#include <stdio.h>   
-	#include "scope.h"
+	#include <stdio.h>
+	#include <stdlib.h>   
+	#include <string.h>
 	#include <math.h>
+	#include "scope.h"
 	int yyerror(char *);
+	int yyerror_with_variable(char*, char*);
 	int yylex(void);
 	extern int yylineno ;
   	extern char* yytext;
@@ -130,13 +135,12 @@
 	extern FILE * yyin;
 	struct scope* current_scope ;
 	struct scope* parent_scope ;
-	int current_DT;
 	
 	void enter_new_scope();
 	void exit_a_scope();
-
+	DataTypes* get_parameters_of_array(struct argument_info*);
 	struct variable_entry * current_identifier;
-
+	RETURN_CODES current_return_code;
 %}
 
 
@@ -148,10 +152,24 @@ statements: statements stmt
 			|		
 			;
 		
-stmt:   Type_Identifier IDENTIFIER SEMICOLON {}  
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {printf("Variable Declaration\n");}
-	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");} 
-	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
+stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable_to_scope(current_scope, $2, 0, $1,VARIABLE,NULL);
+												if(current_return_code == FAILURE)
+													yyerror_with_variable("Redefinition of variable ", $2);
+												else if(current_return_code == CONSTANT_NOT_INITIALIZED)
+													yyerror_with_variable("Must initialize constant within declaration ", $2);
+											}  
+
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE,NULL) == FAILURE)
+																	yyerror_with_variable("Redefinition of variable ", $2);
+																}
+
+	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
+													if(current_return_code == FAILURE)
+														yyerror_with_variable("Undeclared variable ", $1);
+													else if(current_return_code == CONSTANT_REASSIGNMENT)
+														yyerror_with_variable("cant reassign a constant variable :", $1);													
+												} 
+ 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 	|	IF_Statement
 	|	{enter_new_scope();} Scope {exit_a_scope();}
@@ -193,11 +211,11 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 				;
 
 
-Data_Types: Number_Declaration {printf("number declaration or identifier \n");}
-			|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = $1;}
-			|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = $1;}
-			| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->boolValue = $1;}
-			| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->boolValue = $1;}
+Data_Types: Number_Declaration 	{printf("number declaration or identifier \n");}
+			|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
+			|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
+			| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
+			| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
 			;
 
 /* defining boolean expression */
@@ -240,11 +258,16 @@ LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CR
 	|  DO {enter_new_scope();} Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
 	;
 
-Type_Identifier:  INT {current_DT = INT_DT;  printf("integer type\n");}
-				| FLOAT {current_DT = FLOAT_DT; printf("float type\n");}
-				| CHAR  {current_DT = CHAR_DT; printf("char type\n");}
-				| STRING{current_DT = STRING_DT;printf("string type\n");}
-				| BOOL {current_DT = BOOL_DT;printf("boolean type\n");}
+Type_Identifier:  INT {$$ = INT_DT; }
+				| FLOAT {$$ = FLOAT_DT;}
+				| CHAR  {$$ = CHAR_DT;}
+				| STRING{$$ = STRING_DT;}
+				| BOOL {$$ = BOOL_DT;}
+				| CONST INT{$$ = CONST_INT_DT;}
+				| CONST FLOAT{$$ = CONST_FLOAT_DT;}
+				| CONST CHAR{$$ = CONST_CHAR_DT; }
+				| CONST STRING{$$ = CONST_STRING_DT;}
+				| CONST BOOL{$$ = CONST_BOOL_DT;}
 				;
 		
 
@@ -254,8 +277,29 @@ Type_Identifier:  INT {current_DT = INT_DT;  printf("integer type\n");}
 
 
 
-FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();} 
-			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Void_Function_Scope {exit_a_scope();}
+FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
+					enter_new_scope(); // entering a new scope
+					//getting arguments of these function
+					DataTypes* arguments_list = get_parameters_of_array($4);
+					// adding function to the symbol table
+					current_return_code =add_variable_to_scope(current_scope, $2, 0, $1,VARIABLE,arguments_list);
+					if(current_return_code == FAILURE){
+						exit_a_scope();
+						yyerror_with_variable("Redefinition of function ", $2);
+					}
+								} Function_Scope {exit_a_scope();} 
+
+			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
+					enter_new_scope(); // entering a new scope
+					//getting arguments of these function
+					DataTypes* arguments_list = get_parameters_of_array($4);
+					// adding function to the symbol table
+					current_return_code =add_variable_to_scope(current_scope, $2, 0, VOID_DT, VARIABLE, arguments_list);
+					if(current_return_code == FAILURE){
+						exit_a_scope();
+						yyerror_with_variable("Redefinition of function ", $2);
+					}
+								} Void_Function_Scope {exit_a_scope();}
 			;
 
 Function_Scope:	OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	
@@ -264,9 +308,16 @@ Void_Function_Scope:  Scope
 			| OCBRACKET statements RET SEMICOLON CCBRACKET 	
 			;
 
-ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{printf("function arguments \n");}
-			| Type_Identifier IDENTIFIER 	{printf("function arguments \n");}
-			| //it can be empty
+ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{$$ = (struct argument_info *)malloc(sizeof(struct argument_info));
+														 $$->next_arg = $4;
+														 $$->my_name = $2;
+														 $$->my_type = $1;
+														}
+			| Type_Identifier IDENTIFIER 	{$$ = (struct argument_info *)malloc(sizeof(struct argument_info));
+											$$->next_arg = NULL;
+											$$->my_name = $2;
+											$$->my_type = $1;}
+			| {}//it can be empty
 			;
 
 Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n");}
@@ -274,7 +325,14 @@ Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n
 				|//it can be empty
 				;
 
-Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {printf("calling fn \n");}
+Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET { 
+						current_identifier = find_variable_in_scope(current_scope,$1);
+						if(current_identifier == NULL){
+							yyerror("function not initialzed in this scope");
+						}
+						set_lexemeInfo(&$$,current_identifier->my_datatype);
+						$$->stringValue = $1;
+					}
 
 // we made switch take a no (int , float ,.. ) or a fn call which returns int
 // will check that later
@@ -301,7 +359,7 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 
 %% 
  int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
- 
+ int yyerror_with_variable(char *s, char* var) { fprintf(stderr, "line number : %d %s %s\n", yylineno,s, var);     return 0; }
  void enter_new_scope(){
 	printf("enter scope \n");
 
@@ -326,10 +384,35 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 	return;
  }
 
+ DataTypes* get_parameters_of_array(struct argument_info* temp){
+	int no_of_arguments = 0 ;
+	struct argument_info* start_ptr = temp;
+	while(temp){
+		no_of_arguments++;
+		temp = temp->next_arg;
+	}
+	temp = start_ptr;
+	// Dynamically allocate memory using malloc()
+	if(no_of_arguments == 0 )
+		return NULL;
+	DataTypes* arguments_list = (DataTypes*)malloc(no_of_arguments * sizeof(DataTypes));
+	for (int i = 0 ; i <no_of_arguments; i++){
+		// adding each parameter to the symbol table
+		current_return_code = add_variable_to_scope(current_scope, temp->my_name, 0, temp->my_type,PARAMETER,NULL);
+		if(current_return_code == FAILURE)
+		{
+			yyerror_with_variable("Redefinition of parameter in function ", temp->my_name);
+		}
+		arguments_list[i] = temp->my_type;
+		temp = temp->next_arg;
+	}
+	return arguments_list;
+ }
 
  int main(void) {
 
-    
+    enter_new_scope(); // whole scope containing all global variables and functions
+	
 	yyin = fopen("input.txt", "r");
  
 	f1=fopen("output.txt","w");
