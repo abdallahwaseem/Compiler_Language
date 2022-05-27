@@ -55,6 +55,7 @@
 "continue"										return CONTINUE;
 
 "int"											          return INT;
+"bool"											          return BOOL;
 "float"											        return FLOAT;
 "char"											        return CHAR;
 "string"										        return STRING;

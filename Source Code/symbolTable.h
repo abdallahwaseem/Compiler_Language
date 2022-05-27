@@ -17,10 +17,12 @@ typedef enum
 typedef enum
 {
     INT,
+    BOOL,
     FLOAT,
     CHAR,
     STRING,
     Const_INT,
+    Const_BOOL,
     Const_FLOAT,
     Const_CHAR,
     Const_STRING,
@@ -113,7 +115,7 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
     // const int x = 10;
     // x = 11; -> error
     // handled successfully in assign_previously_declared_variable function above
-    if (variable_to_set->my_datatype == Const_INT || variable_to_set->my_datatype == Const_FLOAT || variable_to_set->my_datatype == Const_CHAR || variable_to_set->my_datatype == Const_STRING)
+    if (variable_to_set->my_datatype == Const_INT || variable_to_set->my_datatype == Const_FLOAT || variable_to_set->my_datatype == Const_CHAR || variable_to_set->my_datatype == Const_STRING || variable_to_set->my_datatype == Const_BOOL)
     {
         // if type is constant we cant reassign it
         return CONSTANT_REASSIGNMENT;

@@ -58,6 +58,7 @@
 
 // Tokens for primitive data types
 	%token INT
+	%token BOOL
 	%token FLOAT
 	%token CHAR
 	%token STRING
@@ -208,6 +209,7 @@ Type_Identifier:  INT {printf("integer type\n");}
 				| FLOAT {printf("float type\n");}
 				| CHAR  {printf("char type\n");}
 				| STRING{printf("string type\n");}
+				| BOOL {printf("boolean type\n");}
 				;
 		
 
