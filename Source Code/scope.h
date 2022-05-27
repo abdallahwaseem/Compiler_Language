@@ -51,7 +51,8 @@ struct variable_entry *find_variable_in_scope(struct scope *my_scope, char *vari
     return NULL;
 }
 
-RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype)
+RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype,Kind kind,
+struct function_Datatype* input_params)
 {
     // making a new variable
     struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
@@ -59,8 +60,10 @@ RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_in
     // setting the variable info
     new_variable->is_initialized = is_init;
     new_variable->is_used = 0;
+    new_variable->my_kind = kind;
     new_variable->my_datatype = datatype;
     new_variable->variable_name = name;
+    new_variable->params = input_params;
     return add_variable_to_symbolTable(&my_scope->my_table, new_variable);
 }
 
