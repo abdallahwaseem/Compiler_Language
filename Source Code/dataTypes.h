@@ -28,7 +28,8 @@ typedef enum
     FLOAT_DT,
     CONST_FLOAT_DT,
     STRING_DT,
-    CONST_STRING_DT
+    CONST_STRING_DT,
+    VOID_DT
     // last ones are the highest in rank
 } DataTypes;
 
