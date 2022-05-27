@@ -5,7 +5,7 @@ typedef enum{
 } Kind;
 
 typedef enum{
-    SUCCESS, FAILURE, CONSTANT_NOT_INITIALIZED
+    SUCCESS, FAILURE, CONSTANT_NOT_INITIALIZED, CONSTANT_REASSIGNMENT
 } RETURN_CODES;
 
 typedef enum{
@@ -54,6 +54,7 @@ RETURN_CODES add_variable_to_symbolTable(struct symbolTable *symbolTable, struct
         // therefore multiple definition
         return FAILURE;
     }
+
     // FOR CONSTANTS
     // we have special case to handle
     // 1: any constant must be initialized within the same line of declaration
@@ -89,15 +90,36 @@ RETURN_CODES assign_previously_declared_variable(struct symbolTable *symbolTable
 	struct variable_entry * variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
     if (variable_to_set == NULL)  return FAILURE;
 
+    // we cant assign any previously declared variable which is constant 
+    // const int x = 10;
+    // x = 11; -> error
+    // handled successfully in assign_previously_declared_variable function above
+    if(variable_to_set->my_datatype == Const_INT || variable_to_set->my_datatype == Const_FLOAT
+        || variable_to_set->my_datatype == Const_CHAR|| variable_to_set->my_datatype == Const_STRING){
+            // if type is constant we cant reassign it
+            return CONSTANT_REASSIGNMENT;
+    }
 	
 	variable_to_set->is_initialized = 1;
 	return SUCCESS;
 }
 
-
-// CONSTANTS
+///////////////////////////////////////////////////////////////////////////////////////////////
+// CONSTANT HANDLING
 // we have 2 cases to handle
 // 1: any constant must be initialized within the same line of declaration
         // const int x;
         // 	x = 10; 
         // this is an error so we must check this within declaration
+        // handled successfully in add_variable_to_symbolTable function above
+
+// 2: we cant assign any previously declared variable which is constant 
+        // const int x = 10;
+        // x = 11; -> error
+        // handled successfully in assign_previously_declared_variable function above
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
