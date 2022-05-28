@@ -8,7 +8,14 @@ from turtle import bgcolor
 import tkinter as tk
 # Defining TextEditor Class
 
+  
 class TextEditor:
+  
+  def run(self):
+        process  = os.popen('"../Source Code/a.exe"')
+        x = process.read()
+        print(x)
+        self.T.insert(tk.END,x)
   # Defining Constructor
   def __init__(self,root):
     # Assigning root
@@ -84,18 +91,14 @@ class TextEditor:
     # Adding Scrollbar to text area
     scrol_y.config(command=self.txtarea.yview)
     # Packing Text Area to root window
-    def run(T):
-        process  = os.popen('.\\a.exe')
-        x = process.read()
-        T.insert(tk.END,x)  
+
     self.txtarea.pack(fill=BOTH,expand=1)
-    T = Text(root, height = 100, width = 200)
-    b2 = Button(root, text = "Compile",	
-    height=3,width=10,bg='red',command=run(T))
-   
+    self.T = Text(root, height = 100, width = 200)
+
+    self.b2 = Button(root, text = "Compile",height=3,width=10,bg='red',command=self.run)	
     
-    b2.pack()
-    T.pack()
+    self.b2.pack()
+    self.T.pack()
     
     
     # Calling shortcuts funtion
