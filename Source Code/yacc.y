@@ -169,7 +169,10 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 													yyerror_with_variable("Must initialize constant within declaration ", $2);
 											}  
 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE_KIND,NULL,0) == FAILURE){
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if($4->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE_KIND,NULL,0) == FAILURE){
 																		yyerror_with_variable("Redefinition of variable ", $2);
 																	}else{
 																		operation = implicit_conversion($1,$4->my_type);
@@ -191,7 +194,10 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																	}
 																}
 
-	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
+	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	if($3->is_initialized==0){
+														yyerror("use of uninitialized variable");
+													}
+													current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
 													if(current_return_code == FAILURE)
 														yyerror_with_variable("Undeclared variable ", $1);
 													else if(current_return_code == CONSTANT_REASSIGNMENT)
@@ -245,25 +251,38 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 						}else{
 							set_lexemeInfo(&$$,current_identifier->my_datatype);
 							$$->variableName = $1;
+							$$->is_initialized = current_identifier->is_initialized;
+							set_variable_used_in_scope(current_scope, $1);
 						}
 					}
-				| 	Number_Declaration PLUS Number_Declaration  { 	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
-													if(current_return_code == STRING_INVALID_OPERATION){
-														yyerror("invalid operation on strings");
-													}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-														yyerror("Invalid Operations ");
-													}
+				| 	Number_Declaration PLUS Number_Declaration  { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}
+																	
 												}			
 
-				| 	Number_Declaration MINUS Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MINUS_OP,yylineno);
-													if(current_return_code == STRING_INVALID_OPERATION){
-														yyerror("invalid operation on strings");
-													}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-														yyerror("Invalid Operations ");
-													}
+				| 	Number_Declaration MINUS Number_Declaration { if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,MINUS_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}
+																	
 												}	
 				
-				| 	Number_Declaration DIVIDE Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,DIVIDE_OP,yylineno);
+				| 	Number_Declaration DIVIDE Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,DIVIDE_OP,yylineno);
 																	if(current_return_code == STRING_INVALID_OPERATION){
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
@@ -271,35 +290,49 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																	}else if(current_return_code ==DIVISION_BY_ZERO_ERROR){
 																		yyerror("Divison by zero !");
 																	}
+																	
 																}	
-				| 	Number_Declaration MULTIPLY Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MULTIPLY_OP,yylineno);
-																		if(current_return_code == STRING_INVALID_OPERATION){
-																			yyerror("invalid operation on strings");
-																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-																			yyerror("Invalid Operations ");
-																		}
+				| 	Number_Declaration MULTIPLY Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,MULTIPLY_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}
+																	
 																	}	
-				| 	Number_Declaration REM Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,REM_OP,yylineno);
-																		if(current_return_code == STRING_INVALID_OPERATION){
-																			yyerror("invalid operation on strings");
-																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-																			yyerror("Invalid Operations ");
-																		}
+				| 	Number_Declaration REM Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,REM_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}
 																}	
-				| 	Number_Declaration POWER Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,POWER_OP,yylineno);
-																		if(current_return_code == STRING_INVALID_OPERATION){
-																			yyerror("invalid operation on strings");
-																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-																			yyerror("Invalid Operations ");
-																		}
-																	}	
+				| 	Number_Declaration POWER Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,POWER_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}																	
+																}	
 				|	ORBRACKET Number_Declaration CRBRACKET {$$=$2;}
-				| 	'-' Number_Declaration %prec UMINUS { 	current_return_code =  compute_rhs_value(&$$,$2,NULL,UMINUS_OP,yylineno);
-																		if(current_return_code == STRING_INVALID_OPERATION){
-																			yyerror("invalid operation on strings");
-																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-																			yyerror("Invalid Operations ");
-																		}
+				| 	'-' Number_Declaration %prec UMINUS { 			if($2->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$2,NULL,UMINUS_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}
 														}	
 				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
 				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
@@ -689,7 +722,6 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
  
 	
 	if(!yyparse()) {
-		printf("Parsing complete\n");
 	}
 	else {
 		printf("Parsing failed\n");

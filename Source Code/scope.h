@@ -132,6 +132,9 @@ void delete_all(struct scope *my_scope)
 
     HASH_ITER(hh, my_scope->my_table, current_entry, tmp)
     {
+        if(current_entry->is_used == 0){
+            printf("Variable initialized but not used %s",current_entry->variable_name);
+        }
         HASH_DEL(my_scope->my_table, current_entry); /* delete; users advances to next */
         free(current_entry);                         /* optional- if you want to free  */
     }
