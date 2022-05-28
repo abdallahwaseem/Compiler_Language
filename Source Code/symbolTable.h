@@ -18,6 +18,22 @@ struct variable_entry
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
+struct variable_entry * copy_variable(struct variable_entry * old_variable)
+{
+    // making a new variable
+    struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
+    // setting the variable info
+    new_variable->is_initialized = old_variable->is_initialized;
+    new_variable->is_used = old_variable->is_used;
+    new_variable->my_kind = old_variable->my_kind;
+    new_variable->my_datatype = old_variable->my_datatype;
+    new_variable->variable_name = old_variable->variable_name;
+    new_variable->params = old_variable->params;
+    new_variable->no_of_params = old_variable->no_of_params;
+    return new_variable;
+}
+
+
 struct variable_entry *find_variable_in_symbolTable(struct variable_entry **symbolTable, char *variable_to_find)
 {
 
@@ -62,26 +78,24 @@ RETURN_CODES add_variable_to_symbolTable(struct variable_entry **symbolTable, st
     return SUCCESS;
 }
 
-RETURN_CODES set_variable_used(struct variable_entry **symbolTable, char *variable_name)
+
+// if he initialized x in that way -> int x;
+// x= 10 ; --> should set x to be assigned to avoid sending error of uninitialzied variable
+RETURN_CODES set_variable_used(struct variable_entry **symbolTable, struct variable_entry* variable_to_set)
 {
-
-    struct variable_entry *variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
-    if (variable_to_set == NULL)
-        return FAILURE;
-
-    variable_to_set->is_used = 1;
-
+    struct variable_entry* new_variable = copy_variable(variable_to_set);
+    HASH_DEL(*symbolTable, variable_to_set); /* delete; users advances to next */
+    free(variable_to_set);                         /* optional- if you want to free  */
+    
+    new_variable->is_used = 1;
+    HASH_ADD_STR(*symbolTable, variable_name, new_variable);
     return SUCCESS;
 }
 
 // if he initialized x in that way -> int x;
 // x= 10 ; --> should set x to be assigned to avoid sending error of uninitialzied variable
-RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolTable, char *variable_name)
+RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolTable, struct variable_entry* variable_to_set)
 {
-    struct variable_entry *variable_to_set = find_variable_in_symbolTable(symbolTable, variable_name);
-    if (variable_to_set == NULL)
-        return FAILURE;
-
     // we cant assign any previously declared variable which is constant
     // const int x = 10;
     // x = 11; -> error
@@ -91,8 +105,13 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
         // if type is constant we cant reassign it
         return CONSTANT_REASSIGNMENT;
     }
+    struct variable_entry* new_variable = copy_variable(variable_to_set);
+    new_variable->is_initialized = 1;
 
-    variable_to_set->is_initialized = 1;
+    HASH_DEL(*symbolTable, variable_to_set); /* delete; users advances to next */
+    free(variable_to_set);                         /* optional- if you want to free  */
+
+    HASH_ADD_STR(*symbolTable, variable_name, new_variable);
     return SUCCESS;
 }
 
