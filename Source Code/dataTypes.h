@@ -45,7 +45,8 @@ typedef enum
 {
     NONE,
     EVAL_THEN_DOWNGRADE_RHS,
-    EVAL_THEN_UPGRADE_RHS
+    EVAL_THEN_UPGRADE_RHS,
+    RAISE_ERROR
 } OperationsToDo;
 
 typedef enum
@@ -59,7 +60,18 @@ typedef enum
     UMINUS_OP
 } Operator;
 
-
+typedef enum
+{
+    AND_OP,
+    OR_OP,
+    NOT_OP,
+    GREATERTHAN_OP,
+    GREATERTHANOREQUAL_OP,
+    LESSTHAN_OP,
+    LESSTHANOREQUAL_OP,
+    EQUALEQUAL_OP,
+    NOTEQUAL_OP
+} Boolean_Operator;
 
 struct lexemeInfo
 {
