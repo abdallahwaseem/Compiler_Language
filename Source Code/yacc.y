@@ -135,6 +135,7 @@
 	extern int yylineno ;
   	extern char* yytext;
 	FILE * f1;
+	FILE * symbolTableFile;
 	extern FILE * yyin;
 	struct scope* current_scope ;
 	struct scope* parent_scope ;
@@ -426,7 +427,7 @@ Loop_Scope : OCBRACKET Loop_statements CCBRACKET
 			;
 
 LOOPS: FOR  {enter_new_scope();}ORBRACKET stmt EXPRESSION SEMICOLON Mathematical_Statement CRBRACKET Loop_Scope {exit_a_scope();}
-	|  WHILE EXPRESSION {print_symbol_table_in_scope(current_scope); enter_new_scope();} Loop_Scope {exit_a_scope();}
+	|  WHILE EXPRESSION {enter_new_scope();} Loop_Scope {exit_a_scope();}
 	|  DO {enter_new_scope();} Loop_Scope {exit_a_scope();} WHILE EXPRESSION SEMICOLON
 	;
 
@@ -607,8 +608,11 @@ endCondition: %prec IFX | ELSE  {enter_new_scope();} stmt {exit_a_scope();}
  }
 
  void exit_a_scope(){
+	 print_symbol_table_in_scope(current_scope, symbolTableFile);
+
 	// if there's parent, will set it to grandparent
 	// not all cases we will have parent since at first and last scope it will be null
+	
 	if(parent_scope)
 		parent_scope = parent_scope->my_parent;
 	// delete_scope fn return the parent of current scope  
@@ -716,10 +720,12 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
 
  int main(void) {
 
-    enter_new_scope(); // whole scope containing all global variables and functions
+	enter_new_scope(); // whole scope containing all global variables and functions
+	remove( "symbolTables.txt" );
 	
 	yyin = fopen("input.txt", "r");
- 
+	symbolTableFile = fopen("symbolTables.txt", "a");
+	
 	
 	if(!yyparse()) {
 	}
@@ -730,7 +736,10 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
 	
 	fclose(yyin);
 	fclose(f1);
+
 	// clearing the final scope 
 	exit_a_scope();
-    return 0;
+
+	fclose(symbolTableFile);
+	return 0;
 }

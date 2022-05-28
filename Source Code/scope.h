@@ -96,7 +96,6 @@ RETURN_CODES set_variable_used_in_scope(struct scope *my_scope, char *variable_n
     return FAILURE;
 }
 
-
 RETURN_CODES assign_previously_declared_variable_in_scope(struct scope *my_scope, char *variable_to_find)
 {
     struct variable_entry *variable_found = NULL;
@@ -132,8 +131,12 @@ void delete_all(struct scope *my_scope)
 
     HASH_ITER(hh, my_scope->my_table, current_entry, tmp)
     {
-        if(current_entry->is_used == 0){
-            printf("Variable initialized but not used %s",current_entry->variable_name);
+        if (current_entry->is_used == 0)
+        {
+            if (strcmp(current_entry->variable_name, "main") != 0)
+            {
+                printf("Variable initialized but not used %s\n", current_entry->variable_name);
+            }
         }
         HASH_DEL(my_scope->my_table, current_entry); /* delete; users advances to next */
         free(current_entry);                         /* optional- if you want to free  */
@@ -146,7 +149,7 @@ struct scope *delete_scope(struct scope *my_scope)
     return my_scope->my_parent;
 }
 
-void print_symbol_table_in_scope(struct scope *my_scope)
+void print_symbol_table_in_scope(struct scope *my_scope, FILE *sT)
 {
-    print_symbol_table(&my_scope->my_table);
+    print_symbol_table(&my_scope->my_table, sT);
 }

@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include "dataTypes.h"
 
-
-
 struct variable_entry *find_variable_in_symbolTable(struct variable_entry **symbolTable, char *variable_to_find)
 {
 
@@ -48,15 +46,14 @@ RETURN_CODES add_variable_to_symbolTable(struct variable_entry **symbolTable, st
     return SUCCESS;
 }
 
-
 // if he initialized x in that way -> int x;
 // x= 10 ; --> should set x to be assigned to avoid sending error of uninitialzied variable
-RETURN_CODES set_variable_used(struct variable_entry **symbolTable, struct variable_entry* variable_to_set)
+RETURN_CODES set_variable_used(struct variable_entry **symbolTable, struct variable_entry *variable_to_set)
 {
-    struct variable_entry* new_variable = copy_variable(variable_to_set);
+    struct variable_entry *new_variable = copy_variable(variable_to_set);
     HASH_DEL(*symbolTable, variable_to_set); /* delete; users advances to next */
-    free(variable_to_set);                         /* optional- if you want to free  */
-    
+    free(variable_to_set);                   /* optional- if you want to free  */
+
     new_variable->is_used = 1;
     HASH_ADD_STR(*symbolTable, variable_name, new_variable);
     return SUCCESS;
@@ -64,7 +61,7 @@ RETURN_CODES set_variable_used(struct variable_entry **symbolTable, struct varia
 
 // if he initialized x in that way -> int x;
 // x= 10 ; --> should set x to be assigned to avoid sending error of uninitialzied variable
-RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolTable, struct variable_entry* variable_to_set)
+RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolTable, struct variable_entry *variable_to_set)
 {
     // we cant assign any previously declared variable which is constant
     // const int x = 10;
@@ -75,11 +72,11 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
         // if type is constant we cant reassign it
         return CONSTANT_REASSIGNMENT;
     }
-    struct variable_entry* new_variable = copy_variable(variable_to_set);
+    struct variable_entry *new_variable = copy_variable(variable_to_set);
     new_variable->is_initialized = 1;
 
     HASH_DEL(*symbolTable, variable_to_set); /* delete; users advances to next */
-    free(variable_to_set);                         /* optional- if you want to free  */
+    free(variable_to_set);                   /* optional- if you want to free  */
 
     HASH_ADD_STR(*symbolTable, variable_name, new_variable);
     return SUCCESS;
@@ -100,14 +97,16 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
 // handled successfully in assign_previously_declared_variable function above
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-void print_symbol_table(struct variable_entry **symbolTable)
+void print_symbol_table(struct variable_entry **symbolTable, FILE *sT)
 {
-    printf("\n-------------------PRINTING SYMBOL TABLE--------------------\n");
+    fputs("\nSymbol table\n", sT);
+
+    fputs("variable name \t data_type \t is_initialized \t kind \n", sT);
     struct variable_entry *temp;
 
     for (temp = *symbolTable; temp != NULL; temp = (struct variable_entry *)(temp->hh.next))
     {
-        printf("%s \n", temp->variable_name);
+        fprintf(sT, "%s \t %d \t %d \t %d \n", temp->variable_name, temp->my_datatype, temp->is_initialized, temp->my_kind);
     }
-    printf("\n");
+    fprintf(sT, "\n");
 }
