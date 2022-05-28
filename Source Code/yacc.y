@@ -392,8 +392,8 @@ Loop_statements: Loop_statements stmt
 Loop_Scope : OCBRACKET Loop_statements CCBRACKET 
 			;
 
-LOOPS: FOR ORBRACKET stmt EXPRESSION SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Loop_Scope {exit_a_scope();}
-	|  WHILE EXPRESSION {enter_new_scope();} Loop_Scope {exit_a_scope();}
+LOOPS: FOR  {enter_new_scope();}ORBRACKET stmt EXPRESSION SEMICOLON Mathematical_Statement CRBRACKET Loop_Scope {exit_a_scope();}
+	|  WHILE EXPRESSION {print_symbol_table_in_scope(current_scope); enter_new_scope();} Loop_Scope {exit_a_scope();}
 	|  DO {enter_new_scope();} Loop_Scope {exit_a_scope();} WHILE EXPRESSION SEMICOLON
 	;
 
@@ -476,7 +476,8 @@ Arguments_Call : EXPRESSION COMMA  Arguments_Call{ $$ = (struct argument_info *)
 				| {$$ = NULL;}//it can be empty
 				;
 
-Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET { 
+Function_Calls: ORBRACKET Function_Calls CRBRACKET  {$$ = $2;}
+				| IDENTIFIER ORBRACKET Arguments_Call CRBRACKET { 
 						// first of all we need to find the function
 						current_identifier = find_variable_in_scope(current_scope,$1);
 						if(current_identifier == NULL){
@@ -533,16 +534,16 @@ Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {
 
 // we made switch take a no (int , float ,.. ) or a fn call which returns int
 // will check that later
-Switch_Case : SWITCH  Number_Declaration OCBRACKET Case_Expressions CCBRACKET 
-			| SWITCH  ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
+Switch_Case : SWITCH EXPRESSION OCBRACKET Case_Expressions CCBRACKET 
 			;
 
-DEFAULT_CASE_Statements: DEFAULT_CASE_Statements stmt
-				| BREAK SEMICOLON
+Switch_Case_Statements: Switch_Case_Statements stmt
+				| Switch_Case_Statements BREAK SEMICOLON
+				|
 				;
-				
-Case_Expressions : CASE INT COLON {enter_new_scope();} statements BREAK SEMICOLON {exit_a_scope();} Case_Expressions
-				|	DEFAULT COLON {enter_new_scope();} DEFAULT_CASE_Statements {exit_a_scope();} 
+
+Case_Expressions : CASE INT COLON { enter_new_scope();} Switch_Case_Statements {exit_a_scope();} Case_Expressions
+				|	DEFAULT COLON {enter_new_scope();} Switch_Case_Statements {exit_a_scope();} 
 				|	// since we can have no default or any case (tested on C++)
 				;
 
@@ -620,6 +621,17 @@ endCondition: %prec IFX | ELSE  stmt
 
 void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs){
 	// Number_Declaration will be ready and upgraded if needed
+	current_return_code = assign_previously_declared_variable_in_scope(current_scope,lhs);
+	if(current_return_code == FAILURE){
+		yyerror_with_variable("Undeclared variable ", lhs);
+		return;
+	}
+	else if(current_return_code == CONSTANT_REASSIGNMENT)
+	{
+		yyerror_with_variable("cant reassign a constant variable :", lhs);
+		return;
+	}
+
 	current_identifier = find_variable_in_scope(current_scope,lhs);
 	if(current_identifier == NULL){
 		yyerror_with_variable("identifier not declared in this scope",lhs );
@@ -686,7 +698,6 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
 	
 	fclose(yyin);
 	fclose(f1);
-
 	// clearing the final scope 
 	exit_a_scope();
     return 0;
