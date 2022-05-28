@@ -196,7 +196,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 				|   IDENTIFIER { 
 						current_identifier = find_variable_in_scope(current_scope,$1);
 						if(current_identifier == NULL){
-							yyerror("identifier not initialzed in this scope");
+							yyerror_with_variable("identifier not declared in this scope",$1 );
 						}else{
 							set_lexemeInfo(&$$,current_identifier->my_datatype);
 							$$->stringValue = $1;
