@@ -16,16 +16,85 @@ DataTypes compute_highest_rank(DataTypes op1, DataTypes op2)
 {
     return (op1>op2)? op1: op2;
 }
+RETURN_CODES downgrade_my_value(struct lexemeInfo **op, DataTypes prevdt, DataTypes newdt, int yylineno){
+    
+    if(newdt == CHAR_DT || newdt == CONST_CHAR_DT){
+        if(prevdt == INT_DT || prevdt == CONST_INT_DT){
+            (*op)->charValue = (char)(*op)->intValue ;
+            printf("implicit conversion from int to char in line number: %d\n",yylineno);
+        }
+        else if(prevdt == FLOAT_DT || prevdt == CONST_FLOAT_DT){
+            (*op)->charValue = (char)(*op)->floatValue ;
+            printf("implicit conversion from float to char in line number: %d\n",yylineno);
+        }
+    }else if(newdt == INT_DT || newdt == CONST_INT_DT){
+        if(prevdt == FLOAT_DT || prevdt == CONST_FLOAT_DT){
+            (*op)->intValue = (int)(*op)->floatValue ;
+            printf("implicit conversion from float to int in line number: %d\n",yylineno);
+        }
+    }else if(newdt == BOOL_DT || newdt == CONST_BOOL_DT){
+        if(prevdt == CHAR_DT || prevdt == CONST_CHAR_DT){
+            (*op)->boolValue = (int)(*op)->charValue != 0 ;
+            printf("implicit conversion from char to bool in line number: %d\n",yylineno);
+        }
+        else if(prevdt == INT_DT || prevdt == CONST_INT_DT){
+            (*op)->boolValue = (int)(*op)->intValue != 0 ;
+            printf("implicit conversion from int to bool in line number: %d\n",yylineno);
+        }
+        else if(prevdt == FLOAT_DT || prevdt == CONST_FLOAT_DT){
+            (*op)->boolValue = (int)(*op)->floatValue != 0 ;
+            printf("implicit conversion from float to bool in line number: %d\n",yylineno);
+        }
+    }else{
+        return STRING_INVALID_OPERATION;
+    }
+    return SUCCESS;
+}
 
-
+RETURN_CODES upgrade_my_value(struct lexemeInfo **op, DataTypes prevdt, DataTypes newdt,int yylineno){
+    if(newdt == CHAR_DT || newdt == CONST_CHAR_DT){
+        // since new is character so we knew that old must have been a boolean
+        (*op)->charValue = (char)(*op)->boolValue;
+        printf("implicit conversion from bool to char in line number: %d\n",yylineno);
+    }else if(newdt == INT_DT || newdt == CONST_INT_DT){
+        // since new is int so we knew that old must have been a boolean or a character
+        if(prevdt == BOOL_DT || prevdt == CONST_BOOL_DT){
+            (*op)->intValue = (int)(*op)->boolValue;
+            printf("implicit conversion from bool to int in line number: %d\n",yylineno);
+        }
+        else if(prevdt == CHAR_DT || prevdt == CONST_CHAR_DT){
+            (*op)->intValue = (int)((*op)->charValue);
+            printf("implicit conversion from char to int in line number: %d\n",yylineno);
+        }
+    }else if(newdt == FLOAT_DT || newdt == CONST_FLOAT_DT){
+        // since new is int so we knew that old must have been a boolean or a character or an int
+        if(prevdt == BOOL_DT || prevdt == CONST_BOOL_DT){
+            (*op)->floatValue = (float)(*op)->boolValue;
+            printf("implicit conversion from bool to float in line number: %d\n",yylineno);
+        }
+        else if(prevdt == CHAR_DT || prevdt == CONST_CHAR_DT){
+            (*op)->floatValue = (float)(*op)->charValue;
+            printf("implicit conversion from char to float in line number: %d\n",yylineno);
+        }
+        else if(prevdt == INT_DT || prevdt == CONST_INT_DT){
+            (*op)->floatValue = (float)(*op)->intValue;
+            printf("implicit conversion from int to float in line number: %d\n",yylineno);
+        }
+    }else{
+        return STRING_INVALID_OPERATION;
+    }
+    return SUCCESS;
+}
 
 // compute the result of rhs with setting the type
-RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op1, struct lexemeInfo *op2,Operator operator)
-{
-    if(op2 == NULL && operator == UMINUS_OP ){
+RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op1, struct lexemeInfo *op2,Operator operator,int yylineno)
+{ 
+    if(op2 == NULL && operator == UMINUS_OP){
         if(op1->my_type == INT_DT ||op1->my_type == CONST_INT_DT){
+                    set_lexemeInfo(result, INT_DT);
                     (*result)->intValue = - op1->intValue ;
         }else if(op1->my_type == FLOAT_DT || op1->my_type == CONST_FLOAT_DT){
+                    set_lexemeInfo(result, FLOAT_DT);
                     (*result)->floatValue = - op1->floatValue ;
         }else{
             return OPERATION_NOT_SUPPORTED;
@@ -36,6 +105,22 @@ RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op
     DataTypes max = compute_highest_rank(op1->my_type, op2->my_type);
     // check if same datatype
     RETURN_CODES is_equal = check_both_sides(op1->my_type, op2->my_type);
+    if(is_equal == FAILURE){
+        // incase they are not the same datatype
+        // we need first to detect the one with lower datatype and upgrade it
+        if(op1->my_type == max){
+            // therefore op2 is the one needed to be upgraded
+            DataTypes previous_type = op2->my_type;     
+            op2->my_type = max;
+            upgrade_my_value(&op2, previous_type, max, yylineno);
+        }else if(op2->my_type == max){
+            // therefore op1 is the one needed to be upgraded
+            DataTypes previous_type = op2->my_type;     
+            op1->my_type = max;
+            upgrade_my_value(&op1, previous_type, max, yylineno);
+        }
+        is_equal = SUCCESS;
+    }
 
     if (is_equal == SUCCESS)
     {
@@ -43,6 +128,7 @@ RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op
             // make result of type int if its < int, ex bool or char
             set_lexemeInfo(result, INT_DT);
             if(max == BOOL_DT || max == CONST_BOOL_DT){
+                // check first if we needed to upgrade a certain operand
                 if(operator == PLUS_OP){
                     (*result)->intValue = (int)(op1->boolValue + op2->boolValue);
                 }else if(operator == MINUS_OP){
@@ -50,8 +136,9 @@ RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op
                 }else{
                     return OPERATION_NOT_SUPPORTED;
                 }
+                printf("implicit conversion from bool to int in line number: %d\n",yylineno);
             }
-            else if(max == CHAR_DT || max == CONST_CHAR_DT)// if its char
+            else if(max == CHAR_DT || max == CONST_CHAR_DT){// if its char
                 if(operator == PLUS_OP){
                     (*result)->intValue = (int)(op1->charValue + op2->charValue); 
                 }else if(operator == MINUS_OP){
@@ -59,6 +146,8 @@ RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op
                 }else{
                     return OPERATION_NOT_SUPPORTED;
                 }
+                printf("implicit conversion from char to int in line number: %d\n",yylineno);
+            }
         }else{
             // data type is int or float
             if(max == INT_DT || max == CONST_INT_DT){
@@ -103,21 +192,32 @@ RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op
         }
         return SUCCESS; // no operations to do
     }
-    // TODO::
-    // incase they are not the same datatype
-    // switch (max)
-    // {
-    // case BOOL_DT:
+}
 
-    //     break;
 
-    // default:
-    //     break;
-    // }
+RETURN_CODES down_convert_boolean_expression(struct lexemeInfo **result, struct lexemeInfo *expr1, struct lexemeInfo *expr2,Boolean_Operator operator){
+
+    if(expr1->my_type == STRING_DT || expr1->my_type == CONST_STRING_DT || expr2->my_type == STRING_DT || expr2->my_type == CONST_STRING_DT) 
+    {
+        // since strings cant be downconverted to booleans
+        return STRING_INVALID_OPERATION;
+    }
+    set_lexemeInfo(result , BOOL_DT);
+    // TODO:: compute real result ??
+    (*result)->boolValue = 0;
+    return SUCCESS;
 }
 
 OperationsToDo implicit_conversion(DataTypes lhs, DataTypes rhs)
 {
+    if(
+        ((lhs!= STRING_DT && lhs!= CONST_STRING_DT ) && (rhs == STRING_DT || rhs == CONST_STRING_DT))
+        ||
+        ((rhs!= STRING_DT && rhs!= CONST_STRING_DT ) && (lhs == STRING_DT || lhs == CONST_STRING_DT))
+    ){
+        return RAISE_ERROR;
+    }
+    
     // we assumed that we made the got the max rhs rank
 
     // The difference in rank decides the promotion and demotion of the right expression
