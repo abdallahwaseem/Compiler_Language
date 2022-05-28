@@ -52,7 +52,7 @@ struct variable_entry *find_variable_in_scope(struct scope *my_scope, char *vari
 }
 
 RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype, Kind kind,
-                                   DataTypes *input_params)
+                                   DataTypes *input_params, int no_of_params)
 {
     // making a new variable
     struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
@@ -64,19 +64,66 @@ RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_in
     new_variable->my_datatype = datatype;
     new_variable->variable_name = name;
     new_variable->params = input_params;
+    new_variable->no_of_params = no_of_params;
     return add_variable_to_symbolTable(&my_scope->my_table, new_variable);
 }
 
 RETURN_CODES set_variable_used_in_scope(struct scope *my_scope, char *variable_name)
 {
-    // calling the function in the symboltable file
-    return set_variable_used(&my_scope->my_table, variable_name);
+    struct variable_entry *variable_found = NULL;
+    // first check if its in the current scope
+    variable_found = find_variable_in_symbolTable(&my_scope->my_table, variable_name);
+    if (variable_found != NULL)
+    {
+        // therefore we found it
+        return set_variable_used(&my_scope->my_table, variable_found);
+    }
+    // if its not in the current scope check our parents iteratively till we reach null
+    struct scope *upper_scopes = my_scope->my_parent;
+    while (upper_scopes != NULL)
+    {
+        variable_found = find_variable_in_symbolTable(&upper_scopes->my_table, variable_name);
+        if (variable_found != NULL)
+        {
+            return set_variable_used(&upper_scopes->my_table, variable_found);
+        }
+        else
+        {
+            // go up one more level
+            upper_scopes = upper_scopes->my_parent;
+        }
+    }
+    return FAILURE;
 }
 
-RETURN_CODES assign_previously_declared_variable_in_scope(struct scope *my_scope, char *variable_name)
+
+RETURN_CODES assign_previously_declared_variable_in_scope(struct scope *my_scope, char *variable_to_find)
 {
-    // calling the function in the symboltable file
-    return assign_previously_declared_variable(&my_scope->my_table, variable_name);
+    struct variable_entry *variable_found = NULL;
+
+    // first check if its in the current scope
+    variable_found = find_variable_in_symbolTable(&my_scope->my_table, variable_to_find);
+    if (variable_found != NULL)
+    {
+        // therefore we found it
+        return assign_previously_declared_variable(&my_scope->my_table, variable_found);
+    }
+    // if its not in the current scope check our parents iteratively till we reach null
+    struct scope *upper_scopes = my_scope->my_parent;
+    while (upper_scopes != NULL)
+    {
+        variable_found = find_variable_in_symbolTable(&upper_scopes->my_table, variable_to_find);
+        if (variable_found != NULL)
+        {
+            return assign_previously_declared_variable(&upper_scopes->my_table, variable_found);
+        }
+        else
+        {
+            // go up one more level
+            upper_scopes = upper_scopes->my_parent;
+        }
+    }
+    return FAILURE;
 }
 
 void delete_all(struct scope *my_scope)

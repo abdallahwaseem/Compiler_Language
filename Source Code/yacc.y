@@ -7,6 +7,7 @@
 	char charValue;                
     char* stringValue;
 	int boolValue;
+    char* variableName;
 	struct lexemeInfo * information;
 	struct argument_info * argument_info;
 }
@@ -84,7 +85,7 @@
 	%token CONTINUE
 
 // Token for IDENTIFIER
-  %token <stringValue> IDENTIFIER
+  %token <variableName> IDENTIFIER
 
 // Tokens for switch case
 	%token SWITCH
@@ -113,8 +114,8 @@
 	%token DEFAULT
 
 %type <intValue> Type_Identifier   
-%type <information> Number_Declaration EXPRESSION Data_Types Boolean_Expression Function_Calls
-%type <argument_info> ARGUMENTS
+%type <information> Number_Declaration EXPRESSION Boolean_Expression Function_Calls
+%type <argument_info> ARGUMENTS Arguments_Call
 
 %nonassoc IFX
 %nonassoc ELSE
@@ -126,6 +127,8 @@
 	#include <string.h>
 	#include <math.h>
 	#include "scope.h"
+	#include "typeConversion.h"
+
 	int yyerror(char *);
 	int yyerror_with_variable(char*, char*);
 	int yylex(void);
@@ -136,14 +139,18 @@
 	struct scope* current_scope ;
 	struct scope* parent_scope ;
 	
+	// Functions Declaration
 	void enter_new_scope();
 	void exit_a_scope();
-	DataTypes* get_parameters_of_array(struct argument_info*);
+	DataTypes* get_parameters_of_array(struct argument_info*,int*);
 	void add_parameters_to_function_symbol_table(DataTypes*, struct argument_info*);
+	void assigning_operation_with_conversion(char* , struct lexemeInfo **);
+	void check_Type_Conversion(DataTypes ,struct argument_info*);
 
 	// variables to use through the code to check semantics
 	struct variable_entry * current_identifier;
 	RETURN_CODES current_return_code;
+	OperationsToDo operation;
 %}
 
 
@@ -155,38 +162,75 @@ statements: statements stmt
 			|		
 			;
 		
-stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable_to_scope(current_scope, $2, 0, $1,VARIABLE,NULL);
+stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable_to_scope(current_scope, $2, 0, $1,VARIABLE_KIND,NULL,0);
 												if(current_return_code == FAILURE)
 													yyerror_with_variable("Redefinition of variable ", $2);
 												else if(current_return_code == CONSTANT_NOT_INITIALIZED)
 													yyerror_with_variable("Must initialize constant within declaration ", $2);
 											}  
 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE,NULL) == FAILURE)
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE_KIND,NULL,0) == FAILURE){
 																		yyerror_with_variable("Redefinition of variable ", $2);
+																	}else{
+																		operation = implicit_conversion($1,$4->my_type);
+																		if(operation == EVAL_THEN_DOWNGRADE_RHS){
+																			// downgrade conv to result dt needed
+																			current_return_code = downgrade_my_value(&$4,$4->my_type, $1,yylineno);
+																			if(current_return_code == STRING_INVALID_OPERATION){
+																				yyerror("invalid string conversion");
+																			}
+																		}else if(operation == EVAL_THEN_UPGRADE_RHS){
+																			// upgrade to result dt needed
+																			current_return_code = upgrade_my_value(&$4,$4->my_type, $1,yylineno);
+																			if(current_return_code == STRING_INVALID_OPERATION){
+																				yyerror("invalid string conversion");
+																			}
+																		}else if(operation == RAISE_ERROR){
+																			yyerror("invalid string conversion");
+																		}
+																	}
 																}
 
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
 													if(current_return_code == FAILURE)
 														yyerror_with_variable("Undeclared variable ", $1);
 													else if(current_return_code == CONSTANT_REASSIGNMENT)
-														yyerror_with_variable("cant reassign a constant variable :", $1);													
+														yyerror_with_variable("cant reassign a constant variable :", $1);
+													else{
+														current_identifier = find_variable_in_scope(current_scope,$1);
+														if($3 != NULL){
+															operation = implicit_conversion(current_identifier->my_datatype,$3->my_type);
+															if(operation == EVAL_THEN_DOWNGRADE_RHS){
+																// downgrade conv to result dt needed
+																current_return_code = downgrade_my_value(&$3,$3->my_type, current_identifier->my_datatype,yylineno);
+																if(current_return_code == STRING_INVALID_OPERATION){
+																	yyerror("invalid string conversion");
+																}
+															}else if(operation == EVAL_THEN_UPGRADE_RHS){
+																// upgrade to result dt needed
+																current_return_code = upgrade_my_value(&$3,$3->my_type, current_identifier->my_datatype,yylineno);
+																if(current_return_code == STRING_INVALID_OPERATION){
+																	yyerror("invalid string conversion");
+																}
+															}else if(operation == RAISE_ERROR){
+																yyerror("invalid string conversion");
+															}
+														}
+													}					
 												} 
  
-	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
+	|	Mathematical_Statement SEMICOLON
 	|	IF_Statement
 	|	{enter_new_scope();} Scope {exit_a_scope();}
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
 	| 	Switch_Case
-	|	BREAK SEMICOLON
-	|	CONTINUE SEMICOLON
 	;
 
-EXPRESSION: Data_Types {printf("expression datatype\n");}
-		| 	Boolean_Expression {printf("Boolean expression\n");}
-		|	Function_Calls	{printf("function call\n");}
+EXPRESSION: Number_Declaration {$$ =$1;}
+		| 	Boolean_Expression {$$ =$1;}
+		|	Function_Calls	{$$ =$1;}
 		;
 
 Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
@@ -196,70 +240,161 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 				|   IDENTIFIER { 
 						current_identifier = find_variable_in_scope(current_scope,$1);
 						if(current_identifier == NULL){
-							yyerror("identifier not initialzed in this scope");
+							yyerror_with_variable("identifier not declared in this scope",$1 );
+							$$ = NULL;
 						}else{
 							set_lexemeInfo(&$$,current_identifier->my_datatype);
-							$$->stringValue = $1;
+							$$->variableName = $1;
 						}
 					}
+				| 	Number_Declaration PLUS Number_Declaration  { 	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
+													if(current_return_code == STRING_INVALID_OPERATION){
+														yyerror("invalid operation on strings");
+													}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+														yyerror("Invalid Operations ");
+													}
+												}			
 
-				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation \n");}			
+				| 	Number_Declaration MINUS Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MINUS_OP,yylineno);
+													if(current_return_code == STRING_INVALID_OPERATION){
+														yyerror("invalid operation on strings");
+													}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+														yyerror("Invalid Operations ");
+													}
+												}	
 				
-				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation \n");}
-				| 	Number_Declaration DIVIDE Number_Declaration { printf("division operation \n");}
-				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation \n");}
-				| 	Number_Declaration REM Number_Declaration { printf("remainder operation \n");}
-				| 	Number_Declaration POWER Number_Declaration { printf("power operation \n");}
-				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets\n");}
-				| 	'-' Number_Declaration %prec UMINUS { printf("-ve number \n");}
+				| 	Number_Declaration DIVIDE Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,DIVIDE_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}else if(current_return_code ==DIVISION_BY_ZERO_ERROR){
+																		yyerror("Divison by zero !");
+																	}
+																}	
+				| 	Number_Declaration MULTIPLY Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MULTIPLY_OP,yylineno);
+																		if(current_return_code == STRING_INVALID_OPERATION){
+																			yyerror("invalid operation on strings");
+																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																			yyerror("Invalid Operations ");
+																		}
+																	}	
+				| 	Number_Declaration REM Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,REM_OP,yylineno);
+																		if(current_return_code == STRING_INVALID_OPERATION){
+																			yyerror("invalid operation on strings");
+																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																			yyerror("Invalid Operations ");
+																		}
+																}	
+				| 	Number_Declaration POWER Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,POWER_OP,yylineno);
+																		if(current_return_code == STRING_INVALID_OPERATION){
+																			yyerror("invalid operation on strings");
+																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																			yyerror("Invalid Operations ");
+																		}
+																	}	
+				|	ORBRACKET Number_Declaration CRBRACKET {$$=$2;}
+				| 	'-' Number_Declaration %prec UMINUS { 	current_return_code =  compute_rhs_value(&$$,$2,NULL,UMINUS_OP,yylineno);
+																		if(current_return_code == STRING_INVALID_OPERATION){
+																			yyerror("invalid operation on strings");
+																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																			yyerror("Invalid Operations ");
+																		}
+														}	
+				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
+				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
+				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
+				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
 				;
 
-
-Data_Types: Number_Declaration 	{printf("number declaration or identifier \n");}
-			|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
-			|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
-			| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
-			| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
-			;
 
 /* defining boolean expression */
 Boolean_Expression: 
 					// for logical expressions we can pass any data type
 					// as (x) equivalent to (x!=0) whatever x is int, char, string, ...
-					EXPRESSION AND EXPRESSION {printf("and operator \n");}
-					| EXPRESSION OR EXPRESSION {printf("or operator \n");}
-					| NOT EXPRESSION {printf("not operator \n");}
+					EXPRESSION AND EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, AND_OP);
+													if(current_return_code == STRING_INVALID_OPERATION)
+														yyerror("Invalid String Conversion to Boolean ");
+												}
+					| EXPRESSION OR EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, OR_OP);
+													if(current_return_code == STRING_INVALID_OPERATION)
+														yyerror("Invalid String Conversion to Boolean ");
+												}
+					| NOT EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $2, NULL, NOT_OP);
+													if(current_return_code == STRING_INVALID_OPERATION)
+														yyerror("Invalid String Conversion to Boolean ");
+									}
 					/* 	boolean expressions for datatypes only 
 						ex: 'a' > 'b'   -     1>2
 					 */ 
-					| EXPRESSION GREATERTHAN EXPRESSION {printf("greater than operator \n");}
-					| EXPRESSION GREATERTHANOREQUAL EXPRESSION {printf("greater than equal operator \n");}
-					| EXPRESSION LESSTHAN EXPRESSION {printf("less than operator \n");}
-					| EXPRESSION LESSTHANOREQUAL EXPRESSION {printf("less than equal operator \n");}
-					| EXPRESSION EQUALEQUAL EXPRESSION {printf("== operator \n");}
-					| EXPRESSION NOTEQUAL EXPRESSION {printf("!= operator \n");}
-					| ORBRACKET Boolean_Expression CRBRACKET {printf("boolean between brackets \n");}
+					| EXPRESSION GREATERTHAN EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, GREATERTHAN_OP);
+															if(current_return_code == STRING_INVALID_OPERATION)
+																yyerror("Invalid String Conversion to Boolean ");
+														}
+					| EXPRESSION GREATERTHANOREQUAL EXPRESSION{ current_return_code = down_convert_boolean_expression(&$$, $1, $3, GREATERTHANOREQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION LESSTHAN EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, LESSTHAN_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION LESSTHANOREQUAL EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, LESSTHANOREQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION EQUALEQUAL EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, EQUALEQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION NOTEQUAL EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, NOTEQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+														}
+					| ORBRACKET Boolean_Expression CRBRACKET {$$ = $2;}
 					;
 
 // Mathematical statements  
 /* IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");}  */
 // We made the assign separetely in the stmt cfg since assign can take any thing on the RHS
 // while if we made it here , it will take number only
-Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding a Number to a value\n");}
-				|		IDENTIFIER MINUSEQUAL Number_Declaration {printf("Subtracting a Number to a value\n");}
-				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {printf("Multiplying a Number to a value\n");}
-				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {printf("Dividing a Number to a value\n");}
-				|		IDENTIFIER REMEQUAL Number_Declaration {printf("Remaindering a Number to a value\n");}
-				|   	IDENTIFIER INCREMENT {printf("incrementing number\n");}
-				|   	IDENTIFIER DECREMENT {printf("decremening number \n");}
+Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER MINUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER REMEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|   	IDENTIFIER INCREMENT {	current_identifier = find_variable_in_scope(current_scope,$1);
+												if(current_identifier == NULL){
+													yyerror_with_variable("identifier not declared in this scope",$1);
+												}else if(current_identifier->my_datatype==STRING_DT){
+													yyerror_with_variable("Invalid Operation on strings",$1);
+												}
+											}
+				|   	IDENTIFIER DECREMENT {	current_identifier = find_variable_in_scope(current_scope,$1);
+												if(current_identifier == NULL){
+													yyerror_with_variable("identifier not declared in this scope",$1);
+												}else if(current_identifier->my_datatype==STRING_DT){
+													yyerror_with_variable("Invalid Operation on strings",$1);
+												}
+											}
 				; 
 
-Scope: OCBRACKET statements CCBRACKET {printf("");} 	 
+Scope: OCBRACKET statements CCBRACKET	 
 	;
 
-LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
-	|  WHILE Boolean_Expression {enter_new_scope();} Scope {exit_a_scope();}
-	|  DO {enter_new_scope();} Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
+// we separated Loop_statements bec they contain BREAK, Continue and we cant use them in normal context
+Loop_statements: Loop_statements stmt
+				| Loop_statements BREAK SEMICOLON 
+				| Loop_statements CONTINUE SEMICOLON
+				|
+				;
+
+Loop_Scope : OCBRACKET Loop_statements CCBRACKET 
+			;
+
+LOOPS: FOR  {enter_new_scope();}ORBRACKET stmt EXPRESSION SEMICOLON Mathematical_Statement CRBRACKET Loop_Scope {exit_a_scope();}
+	|  WHILE EXPRESSION {print_symbol_table_in_scope(current_scope); enter_new_scope();} Loop_Scope {exit_a_scope();}
+	|  DO {enter_new_scope();} Loop_Scope {exit_a_scope();} WHILE EXPRESSION SEMICOLON
 	;
 
 Type_Identifier:  INT {$$ = INT_DT; }
@@ -283,29 +418,31 @@ Type_Identifier:  INT {$$ = INT_DT; }
 
 FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
 					//getting arguments of these function
-					DataTypes* arguments_list = get_parameters_of_array($4);
+					int no_of_args = 0 ;
+					DataTypes* arguments_list = get_parameters_of_array($4,&no_of_args);
 					// adding function to the symbol table
-					current_return_code = add_variable_to_scope(current_scope, $2, 0, $1, VARIABLE, arguments_list);
+					current_return_code = add_variable_to_scope(current_scope, $2, 0, $1, FUNCTION_KIND, arguments_list,no_of_args);
 					if(current_return_code == FAILURE){
 						yyerror_with_variable("Redefinition of function ", $2);
 					}
 					enter_new_scope(); // entering a new scope
 					// we add parameters to symbol table after making new scope
 					add_parameters_to_function_symbol_table(arguments_list, $4);
-								} Function_Scope {print_symbol_table(&(current_scope)->my_table); exit_a_scope();} 
+								} Function_Scope {exit_a_scope();} 
 
 			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
 					//getting arguments of these function
-					DataTypes* arguments_list = get_parameters_of_array($4);
+					int no_of_args = 0 ;
+					DataTypes* arguments_list = get_parameters_of_array($4,&no_of_args);
 					// adding function to the symbol table
-					current_return_code = add_variable_to_scope(current_scope, $2, 0, VOID_DT, VARIABLE, arguments_list);
+					current_return_code = add_variable_to_scope(current_scope, $2, 0, VOID_DT, FUNCTION_KIND, arguments_list,no_of_args);
 					if(current_return_code == FAILURE){
 						yyerror_with_variable("Redefinition of function ", $2);
 					}
 					enter_new_scope(); // entering a new scope
 					// we add parameters to symbol table after making new scope
 					add_parameters_to_function_symbol_table(arguments_list, $4);
-								} Void_Function_Scope {print_symbol_table(&(current_scope)->my_table); exit_a_scope();}
+								} Void_Function_Scope {exit_a_scope();}
 			;
 
 Function_Scope:	OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	
@@ -323,41 +460,99 @@ ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{$$ = (struct argument_in
 											$$->next_arg = NULL;
 											$$->my_name = $2;
 											$$->my_type = $1;}
-			| {}//it can be empty
+			| {$$ = NULL}//it can be empty
 			;
 
-Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n");}
-				| EXPRESSION {printf("function arguments  \n");}
-				|//it can be empty
+Arguments_Call : EXPRESSION COMMA  Arguments_Call{ $$ = (struct argument_info *)malloc(sizeof(struct argument_info));
+												$$->next_arg = $3;
+												$$->my_name = $1->variableName;
+												$$->my_type = $1->my_type; 
+												}
+
+				| EXPRESSION {	$$ = (struct argument_info *)malloc(sizeof(struct argument_info)); 
+								$$->my_name = $1->variableName;
+								$$->my_type = $1->my_type; 
+								$$->next_arg = NULL;}
+				| {$$ = NULL;}//it can be empty
 				;
 
-Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET { 
+Function_Calls: ORBRACKET Function_Calls CRBRACKET  {$$ = $2;}
+				| IDENTIFIER ORBRACKET Arguments_Call CRBRACKET { 
+						// first of all we need to find the function
 						current_identifier = find_variable_in_scope(current_scope,$1);
 						if(current_identifier == NULL){
 							yyerror("function not initialzed in this scope");
 						}else{
-							set_lexemeInfo(&$$,current_identifier->my_datatype);
-							$$->stringValue = $1;
+							// we need to match the parameters with the real arguments
+							// the real input params to function
+							DataTypes *my_params = current_identifier->params;
+
+							int no_of_params = current_identifier->no_of_params;
+							int i = 0;
+							int success = 1;
+							while($3){
+								if(i==no_of_params){
+									yyerror("Number of arguments doesnt match function");
+									success = 0;
+									break;
+								}
+								// then we will check the types of them one by one
+								if($3->my_name == NULL){
+									// therefore its not an identifier and its a value
+									// we will check the implicit conversion
+									check_Type_Conversion(my_params[i] ,$3);
+								}else{
+									// identifer is sent
+									// first of all we need to check that the variable passed is in table
+									struct variable_entry * arg_identifier = find_variable_in_scope(current_scope,$3->my_name);
+									
+									if(arg_identifier == NULL){
+										yyerror("variable in the argument list not initialzed in this scope");
+									}else{
+										// then we need to check on the type
+										if(my_params[i] != $3->my_type){
+											// we will check the implicit conversion
+											check_Type_Conversion(my_params[i] ,$3);
+										}
+									}
+								}
+								$3= $3->next_arg;
+								i++;
+							}
+							if(i < no_of_params){
+									yyerror("Number of arguments doesnt match function");
+									success = 0;
+							}
+							if(success == 1){
+								set_lexemeInfo(&$$,current_identifier->my_datatype);
+								$$->variableName = $1;
+							}else{
+								$$ = NULL;
+							}
 						}
 					}
 
 // we made switch take a no (int , float ,.. ) or a fn call which returns int
 // will check that later
-Switch_Case : SWITCH  Number_Declaration OCBRACKET Case_Expressions CCBRACKET 
-			| SWITCH  ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
+Switch_Case : SWITCH EXPRESSION OCBRACKET Case_Expressions CCBRACKET 
 			;
 
-Case_Expressions : CASE INT COLON {enter_new_scope();} statements BREAK SEMICOLON {exit_a_scope();} Case_Expressions
-				|	DEFAULT COLON statements 
-				|	// since we can have no default or any case (tested on C++)
+Switch_Case_Statements: Switch_Case_Statements stmt
+				| Switch_Case_Statements BREAK SEMICOLON
+				|
 				;
 
+Case_Expressions : CASE INT COLON { enter_new_scope();} Switch_Case_Statements {exit_a_scope();} Case_Expressions
+				|	DEFAULT COLON {enter_new_scope();} Switch_Case_Statements {exit_a_scope();} 
+				|	// since we can have no default or any case (tested on C++)
+				;
 
 /* 
 IF ELSE Case
 https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
 */
-IF_Statement : IF  ORBRACKET EXPRESSION CRBRACKET stmt endCondition 
+// {enter_new_scope();}  {exit_a_scope();}
+IF_Statement : IF  ORBRACKET EXPRESSION {if($3->my_type==STRING_DT)yyerror("Invalid String Conversion to Boolean");} CRBRACKET stmt endCondition 
 			;
 
 endCondition: %prec IFX | ELSE  stmt
@@ -368,8 +563,6 @@ endCondition: %prec IFX | ELSE  stmt
  int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
  int yyerror_with_variable(char *s, char* var) { fprintf(stderr, "line number : %d %s %s\n", yylineno,s, var);     return 0; }
  void enter_new_scope(){
-	printf("enter scope \n");
-
 	// setting the parent to currnt scope
 	parent_scope = current_scope;
 	// make the new scope by malloc
@@ -381,7 +574,6 @@ endCondition: %prec IFX | ELSE  stmt
  }
 
  void exit_a_scope(){
-	printf("left scope \n");
 	// if there's parent, will set it to grandparent
 	// not all cases we will have parent since at first and last scope it will be null
 	if(parent_scope)
@@ -391,18 +583,18 @@ endCondition: %prec IFX | ELSE  stmt
 	return;
  }
 
- DataTypes* get_parameters_of_array(struct argument_info* temp){
-	int no_of_arguments = 0 ;
+ DataTypes* get_parameters_of_array(struct argument_info* temp, int * no_of_arguments){
+	(*no_of_arguments) = 0 ;
 	struct argument_info* start_ptr = temp;
 	while(start_ptr){
-		no_of_arguments++;
+		(*no_of_arguments)++;
 		start_ptr = start_ptr->next_arg;
 	}
 	start_ptr = temp;
 	// Dynamically allocate memory using malloc()
-	if(no_of_arguments == 0 )
+	if((*no_of_arguments) == 0 )
 		return NULL;
-	DataTypes* arguments_list = (DataTypes*)malloc(no_of_arguments * sizeof(DataTypes));
+	DataTypes* arguments_list = (DataTypes*)malloc((*no_of_arguments) * sizeof(DataTypes));
 	int i = 0 ;
 	while(start_ptr){
 		arguments_list[i] = start_ptr->my_type;
@@ -414,18 +606,80 @@ endCondition: %prec IFX | ELSE  stmt
 
  void add_parameters_to_function_symbol_table(DataTypes* arguments_list,struct argument_info* temp){
 	int i = 0 ;
-	while(temp){
+	struct argument_info* start_ptr = temp;
+	while(start_ptr){
 		// adding each parameter to the symbol table
-		current_return_code = add_variable_to_scope(current_scope, temp->my_name, 0, temp->my_type,PARAMETER,NULL);
+		current_return_code = add_variable_to_scope(current_scope, start_ptr->my_name, 0, start_ptr->my_type,PARAMETER_KIND,NULL,0);
 		if(current_return_code == FAILURE)
 		{
-			yyerror_with_variable("Redefinition of parameter in function ", temp->my_name);
+			yyerror_with_variable("Redefinition of parameter in function ", start_ptr->my_name);
 		}
-		arguments_list[i] = temp->my_type;
-		temp = temp->next_arg;
+		start_ptr = start_ptr->next_arg;
 		i++;
 	}
  }
+
+void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs){
+	// Number_Declaration will be ready and upgraded if needed
+	current_return_code = assign_previously_declared_variable_in_scope(current_scope,lhs);
+	if(current_return_code == FAILURE){
+		yyerror_with_variable("Undeclared variable ", lhs);
+		return;
+	}
+	else if(current_return_code == CONSTANT_REASSIGNMENT)
+	{
+		yyerror_with_variable("cant reassign a constant variable :", lhs);
+		return;
+	}
+
+	current_identifier = find_variable_in_scope(current_scope,lhs);
+	if(current_identifier == NULL){
+		yyerror_with_variable("identifier not declared in this scope",lhs );
+	}else{
+		operation = implicit_conversion(current_identifier->my_datatype,(*rhs)->my_type);
+		if(operation == EVAL_THEN_DOWNGRADE_RHS){
+			// downgrade conv to result dt needed
+			current_return_code = downgrade_my_value(rhs,(*rhs)->my_type, current_identifier->my_datatype,yylineno);
+			if(current_return_code == STRING_INVALID_OPERATION){
+				yyerror("invalid string conversion");
+			}
+		}else if(operation == EVAL_THEN_UPGRADE_RHS){
+			// upgrade to result dt needed
+			current_return_code = upgrade_my_value(rhs,(*rhs)->my_type, current_identifier->my_datatype,yylineno);
+			if(current_return_code == STRING_INVALID_OPERATION){
+				yyerror("invalid string conversion");
+			}
+		}else if(operation == RAISE_ERROR){
+			yyerror("invalid string conversion");
+		}
+	}
+}
+
+void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* input_argument){
+		operation = implicit_conversion(real_identifier,input_argument->my_type);
+		struct lexemeInfo *input_lexeme ;
+		set_lexemeInfo(&input_lexeme, input_argument->my_type);
+		
+		if(operation == EVAL_THEN_DOWNGRADE_RHS){
+			// downgrade conv to result dt needed
+			current_return_code = downgrade_my_value(&input_lexeme,input_lexeme->my_type, real_identifier,yylineno);
+			
+			
+			if(current_return_code == STRING_INVALID_OPERATION){
+				yyerror("invalid string conversion");
+			}
+
+		}else if(operation == EVAL_THEN_UPGRADE_RHS){
+			// upgrade to result dt needed
+			
+			current_return_code = upgrade_my_value(&input_lexeme,input_lexeme->my_type, real_identifier,yylineno);
+			if(current_return_code == STRING_INVALID_OPERATION){
+				yyerror("invalid string conversion");
+			}
+		}else if(operation == RAISE_ERROR){
+			yyerror("invalid string conversion");
+		}
+}
 
  int main(void) {
 
@@ -433,22 +687,18 @@ endCondition: %prec IFX | ELSE  stmt
 	
 	yyin = fopen("input.txt", "r");
  
-	f1=fopen("output.txt","w");
 	
 	if(!yyparse()) {
-		printf("\nParsing complete\n");
-		fprintf(f1,"hello there");
+		printf("Parsing complete\n");
 	}
 	else {
-		printf("\nParsing failed\n");
+		printf("Parsing failed\n");
 		return 0;
 	}
 	
 	fclose(yyin);
 	fclose(f1);
-
 	// clearing the final scope 
-	print_symbol_table(&(current_scope)->my_table);
 	exit_a_scope();
     return 0;
 }
