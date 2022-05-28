@@ -323,7 +323,7 @@ ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{$$ = (struct argument_in
 											$$->next_arg = NULL;
 											$$->my_name = $2;
 											$$->my_type = $1;}
-			| {}//it can be empty
+			| {$$ = NULL}//it can be empty
 			;
 
 Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n");}
@@ -414,15 +414,15 @@ endCondition: %prec IFX | ELSE  stmt
 
  void add_parameters_to_function_symbol_table(DataTypes* arguments_list,struct argument_info* temp){
 	int i = 0 ;
-	while(temp){
+	struct argument_info* start_ptr = temp;
+	while(start_ptr){
 		// adding each parameter to the symbol table
-		current_return_code = add_variable_to_scope(current_scope, temp->my_name, 0, temp->my_type,PARAMETER,NULL);
+		current_return_code = add_variable_to_scope(current_scope, start_ptr->my_name, 0, start_ptr->my_type,PARAMETER,NULL);
 		if(current_return_code == FAILURE)
 		{
-			yyerror_with_variable("Redefinition of parameter in function ", temp->my_name);
+			yyerror_with_variable("Redefinition of parameter in function ", start_ptr->my_name);
 		}
-		arguments_list[i] = temp->my_type;
-		temp = temp->next_arg;
+		start_ptr = start_ptr->next_arg;
 		i++;
 	}
  }
