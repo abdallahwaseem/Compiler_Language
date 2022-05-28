@@ -32,3 +32,11 @@ case 2 :
 so here x is defined in case 1 only and cant use it in case 2 
 
 -----------------------------------
+MATHEMATICAL OPERATIONS !
+
+the compiler doesnt allow 
+x = true + true;
+
+but it does allow it if its saved in an identifier like
+bool y = true;
+x = y + y;
