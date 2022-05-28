@@ -12,7 +12,7 @@ import tkinter as tk
 class TextEditor:
   
   def run(self):
-        process  = os.popen('"../Source Code/a.exe"')
+        process  = os.popen('.\\a.exe')
         x = process.read()
         print(x)
         self.T.insert(tk.END,x)
