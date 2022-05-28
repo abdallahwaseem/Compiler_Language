@@ -551,17 +551,17 @@ Case_Expressions : CASE INT COLON { enter_new_scope();} Switch_Case_Statements {
 IF ELSE Case
 https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
 */
-// {enter_new_scope();}  {exit_a_scope();}
-IF_Statement : IF  ORBRACKET EXPRESSION {if($3->my_type==STRING_DT)yyerror("Invalid String Conversion to Boolean");} CRBRACKET stmt endCondition 
+//   
+IF_Statement : IF  ORBRACKET EXPRESSION {if($3->my_type==STRING_DT)yyerror("Invalid String Conversion to Boolean");} CRBRACKET{enter_new_scope();} stmt {exit_a_scope();} endCondition 
 			;
 
-endCondition: %prec IFX | ELSE  stmt
+endCondition: %prec IFX | ELSE  {enter_new_scope();} stmt {exit_a_scope();}
 			;
 
 
 %% 
  int yyerror(char *s) { printf("line number : %d %s\n", yylineno,s);     return 0; }
- int yyerror_with_variable(char *s, char* var) { fprintf(stderr, "line number : %d %s %s\n", yylineno,s, var);     return 0; }
+ int yyerror_with_variable(char *s, char* var) { printf("line number : %d %s %s\n", yylineno,s, var);     return 0; }
  void enter_new_scope(){
 	// setting the parent to currnt scope
 	parent_scope = current_scope;
