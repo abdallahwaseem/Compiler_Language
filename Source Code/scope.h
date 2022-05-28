@@ -85,7 +85,7 @@ RETURN_CODES set_variable_used_in_scope(struct scope *my_scope, char *variable_n
         variable_found = find_variable_in_symbolTable(&upper_scopes->my_table, variable_name);
         if (variable_found != NULL)
         {
-            return assign_previously_declared_variable(&upper_scopes->my_table, variable_found);
+            return set_variable_used(&upper_scopes->my_table, variable_found);
         }
         else
         {
