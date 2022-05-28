@@ -1,8 +1,13 @@
+#pragma once
+#ifndef _DATATYPES
+#define _DATATYPES
+#include <stdlib.h>
+
 typedef enum
 {
-    FUNCTION,
-    PARAMETER,
-    VARIABLE
+    FUNCTION_KIND,
+    PARAMETER_KIND,
+    VARIABLE_KIND
 } Kind;
 
 typedef enum
@@ -10,7 +15,10 @@ typedef enum
     SUCCESS,
     FAILURE,
     CONSTANT_NOT_INITIALIZED,
-    CONSTANT_REASSIGNMENT
+    CONSTANT_REASSIGNMENT,
+    STRING_INVALID_OPERATION,
+    OPERATION_NOT_SUPPORTED,
+    DIVISION_BY_ZERO_ERROR
 } RETURN_CODES;
 
 typedef enum
@@ -27,11 +35,31 @@ typedef enum
     CONST_INT_DT,
     FLOAT_DT,
     CONST_FLOAT_DT,
+    // last ones are the highest in rank
     STRING_DT,
     CONST_STRING_DT,
     VOID_DT
-    // last ones are the highest in rank
 } DataTypes;
+
+typedef enum
+{
+    NONE,
+    EVAL_THEN_DOWNGRADE_RHS,
+    EVAL_THEN_UPGRADE_RHS
+} OperationsToDo;
+
+typedef enum
+{
+    PLUS_OP,
+    MINUS_OP,
+    DIVIDE_OP,
+    MULTIPLY_OP,
+    REM_OP,
+    POWER_OP,
+    UMINUS_OP
+} Operator;
+
+
 
 struct lexemeInfo
 {
@@ -40,6 +68,7 @@ struct lexemeInfo
     char charValue;
     char *stringValue;
     int boolValue;
+    char *variableName;
     DataTypes my_type;
 };
 
@@ -49,6 +78,10 @@ void set_lexemeInfo(struct lexemeInfo **input_lexeme, DataTypes my_type)
     (*input_lexeme)->my_type = my_type;
 }
 
+// void set_lexemeValue(struct lexemeInfo **input_lexeme){
+
+// }
+
 // linked list of arguments
 struct argument_info
 {
@@ -56,3 +89,5 @@ struct argument_info
     char *my_name;
     struct argument_info *next_arg; // points to next arguments in linked list
 };
+
+#endif
