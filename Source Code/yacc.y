@@ -114,7 +114,7 @@
 	%token DEFAULT
 
 %type <intValue> Type_Identifier   
-%type <information> Number_Declaration EXPRESSION Data_Types Boolean_Expression Function_Calls
+%type <information> Number_Declaration EXPRESSION Boolean_Expression Function_Calls
 %type <argument_info> ARGUMENTS
 
 %nonassoc IFX
@@ -143,10 +143,11 @@
 	void exit_a_scope();
 	DataTypes* get_parameters_of_array(struct argument_info*);
 	void add_parameters_to_function_symbol_table(DataTypes*, struct argument_info*);
-
+	void assigning_operation_with_conversion(char* , struct lexemeInfo **);
 	// variables to use through the code to check semantics
 	struct variable_entry * current_identifier;
 	RETURN_CODES current_return_code;
+	OperationsToDo operation;
 %}
 
 
@@ -165,29 +166,64 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 													yyerror_with_variable("Must initialize constant within declaration ", $2);
 											}  
 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE_KIND,NULL) == FAILURE)
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE_KIND,NULL) == FAILURE){
 																		yyerror_with_variable("Redefinition of variable ", $2);
+																	}else{
+																		operation = implicit_conversion($1,$4->my_type);
+																		if(operation == EVAL_THEN_DOWNGRADE_RHS){
+																			// downgrade conv to result dt needed
+																			current_return_code = downgrade_my_value(&$4,$4->my_type, $1,yylineno);
+																			if(current_return_code == STRING_INVALID_OPERATION){
+																				yyerror("invalid string conversion");
+																			}
+																		}else if(operation == EVAL_THEN_UPGRADE_RHS){
+																			// upgrade to result dt needed
+																			current_return_code = upgrade_my_value(&$4,$4->my_type, $1,yylineno);
+																			if(current_return_code == STRING_INVALID_OPERATION){
+																				yyerror("invalid string conversion");
+																			}
+																		}else if(operation == RAISE_ERROR){
+																			yyerror("invalid string conversion");
+																		}
+																	}
 																}
 
 	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
 													if(current_return_code == FAILURE)
 														yyerror_with_variable("Undeclared variable ", $1);
 													else if(current_return_code == CONSTANT_REASSIGNMENT)
-														yyerror_with_variable("cant reassign a constant variable :", $1);													
+														yyerror_with_variable("cant reassign a constant variable :", $1);
+													else{
+														current_identifier = find_variable_in_scope(current_scope,$1);
+														operation = implicit_conversion(current_identifier->my_datatype,$3->my_type);
+														if(operation == EVAL_THEN_DOWNGRADE_RHS){
+															// downgrade conv to result dt needed
+															current_return_code = downgrade_my_value(&$3,$3->my_type, current_identifier->my_datatype,yylineno);
+															if(current_return_code == STRING_INVALID_OPERATION){
+																yyerror("invalid string conversion");
+															}
+														}else if(operation == EVAL_THEN_UPGRADE_RHS){
+															// upgrade to result dt needed
+															current_return_code = upgrade_my_value(&$3,$3->my_type, current_identifier->my_datatype,yylineno);
+															if(current_return_code == STRING_INVALID_OPERATION){
+																yyerror("invalid string conversion");
+															}
+														}else if(operation == RAISE_ERROR){
+															yyerror("invalid string conversion");
+														}
+													}					
 												} 
  
-	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
+	|	Mathematical_Statement SEMICOLON
 	|	IF_Statement
 	|	{enter_new_scope();} Scope {exit_a_scope();}
 	| 	LOOPS
 	|   FUNCTIONS
 	| 	Function_Calls SEMICOLON  // f1();
 	| 	Switch_Case
-	|	BREAK SEMICOLON
-	|	CONTINUE SEMICOLON
 	;
 
-EXPRESSION: Data_Types {$$ =$1;}
+EXPRESSION: Number_Declaration {$$ =$1;}
 		| 	Boolean_Expression {$$ =$1;}
 		|	Function_Calls	{$$ =$1;}
 		;
@@ -205,8 +241,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 							$$->variableName = $1;
 						}
 					}
-
-				| 	Number_Declaration PLUS Number_Declaration  { 	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP);
+				| 	Number_Declaration PLUS Number_Declaration  { 	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
 													if(current_return_code == STRING_INVALID_OPERATION){
 														yyerror("invalid operation on strings");
 													}else if(current_return_code == OPERATION_NOT_SUPPORTED){
@@ -214,7 +249,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 													}
 												}			
 
-				| 	Number_Declaration MINUS Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MINUS_OP);
+				| 	Number_Declaration MINUS Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MINUS_OP,yylineno);
 													if(current_return_code == STRING_INVALID_OPERATION){
 														yyerror("invalid operation on strings");
 													}else if(current_return_code == OPERATION_NOT_SUPPORTED){
@@ -222,7 +257,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 													}
 												}	
 				
-				| 	Number_Declaration DIVIDE Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,DIVIDE_OP);
+				| 	Number_Declaration DIVIDE Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,DIVIDE_OP,yylineno);
 																	if(current_return_code == STRING_INVALID_OPERATION){
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
@@ -231,21 +266,21 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																		yyerror("Divison by zerro !");
 																	}
 																}	
-				| 	Number_Declaration MULTIPLY Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MULTIPLY_OP);
+				| 	Number_Declaration MULTIPLY Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,MULTIPLY_OP,yylineno);
 																		if(current_return_code == STRING_INVALID_OPERATION){
 																			yyerror("invalid operation on strings");
 																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																			yyerror("Invalid Operations ");
 																		}
 																	}	
-				| 	Number_Declaration REM Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,REM_OP);
+				| 	Number_Declaration REM Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,REM_OP,yylineno);
 																		if(current_return_code == STRING_INVALID_OPERATION){
 																			yyerror("invalid operation on strings");
 																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																			yyerror("Invalid Operations ");
 																		}
 																}	
-				| 	Number_Declaration POWER Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,POWER_OP);
+				| 	Number_Declaration POWER Number_Declaration { 	current_return_code =  compute_rhs_value(&$$,$1,$3,POWER_OP,yylineno);
 																		if(current_return_code == STRING_INVALID_OPERATION){
 																			yyerror("invalid operation on strings");
 																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
@@ -253,51 +288,75 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																		}
 																	}	
 				|	ORBRACKET Number_Declaration CRBRACKET {$$=$2;}
-				| 	'-' Number_Declaration %prec UMINUS { 	current_return_code =  compute_rhs_value(&$$,$2,NULL,UMINUS_OP);
+				| 	'-' Number_Declaration %prec UMINUS { 	current_return_code =  compute_rhs_value(&$$,$2,NULL,UMINUS_OP,yylineno);
 																		if(current_return_code == STRING_INVALID_OPERATION){
 																			yyerror("invalid operation on strings");
 																		}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																			yyerror("Invalid Operations ");
 																		}
 														}	
+				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
+				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
+				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
+				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
 				;
 
-
-Data_Types: Number_Declaration 	{$$ =$1;}
-			|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
-			|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
-			| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
-			| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
-			;
 
 /* defining boolean expression */
 Boolean_Expression: 
 					// for logical expressions we can pass any data type
 					// as (x) equivalent to (x!=0) whatever x is int, char, string, ...
-					EXPRESSION AND EXPRESSION {printf("and operator \n");}
-					| EXPRESSION OR EXPRESSION {printf("or operator \n");}
-					| NOT EXPRESSION {printf("not operator \n");}
+					EXPRESSION AND EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, AND_OP);
+													if(current_return_code == STRING_INVALID_OPERATION)
+														yyerror("Invalid String Conversion to Boolean ");
+												}
+					| EXPRESSION OR EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, OR_OP);
+													if(current_return_code == STRING_INVALID_OPERATION)
+														yyerror("Invalid String Conversion to Boolean ");
+												}
+					| NOT EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $2, NULL, NOT_OP);
+													if(current_return_code == STRING_INVALID_OPERATION)
+														yyerror("Invalid String Conversion to Boolean ");
+									}
 					/* 	boolean expressions for datatypes only 
 						ex: 'a' > 'b'   -     1>2
 					 */ 
-					| EXPRESSION GREATERTHAN EXPRESSION {printf("greater than operator \n");}
-					| EXPRESSION GREATERTHANOREQUAL EXPRESSION {printf("greater than equal operator \n");}
-					| EXPRESSION LESSTHAN EXPRESSION {printf("less than operator \n");}
-					| EXPRESSION LESSTHANOREQUAL EXPRESSION {printf("less than equal operator \n");}
-					| EXPRESSION EQUALEQUAL EXPRESSION {printf("== operator \n");}
-					| EXPRESSION NOTEQUAL EXPRESSION {printf("!= operator \n");}
-					| ORBRACKET Boolean_Expression CRBRACKET {printf("boolean between brackets \n");}
+					| EXPRESSION GREATERTHAN EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, GREATERTHAN_OP);
+															if(current_return_code == STRING_INVALID_OPERATION)
+																yyerror("Invalid String Conversion to Boolean ");
+														}
+					| EXPRESSION GREATERTHANOREQUAL EXPRESSION{ current_return_code = down_convert_boolean_expression(&$$, $1, $3, GREATERTHANOREQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION LESSTHAN EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, LESSTHAN_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION LESSTHANOREQUAL EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, LESSTHANOREQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION EQUALEQUAL EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, EQUALEQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+															}
+					| EXPRESSION NOTEQUAL EXPRESSION { current_return_code = down_convert_boolean_expression(&$$, $1, $3, NOTEQUAL_OP);
+																if(current_return_code == STRING_INVALID_OPERATION)
+																	yyerror("Invalid String Conversion to Boolean ");
+														}
+					| ORBRACKET Boolean_Expression CRBRACKET {$$ = $2; }
 					;
 
 // Mathematical statements  
 /* IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");}  */
 // We made the assign separetely in the stmt cfg since assign can take any thing on the RHS
 // while if we made it here , it will take number only
-Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding a Number to a value\n");}
-				|		IDENTIFIER MINUSEQUAL Number_Declaration {printf("Subtracting a Number to a value\n");}
-				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {printf("Multiplying a Number to a value\n");}
-				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {printf("Dividing a Number to a value\n");}
-				|		IDENTIFIER REMEQUAL Number_Declaration {printf("Remaindering a Number to a value\n");}
+Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER MINUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+				|		IDENTIFIER REMEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
 				|   	IDENTIFIER INCREMENT {printf("incrementing number\n");}
 				|   	IDENTIFIER DECREMENT {printf("decremening number \n");}
 				; 
@@ -305,9 +364,19 @@ Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding 
 Scope: OCBRACKET statements CCBRACKET {printf("");} 	 
 	;
 
-LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
-	|  WHILE Boolean_Expression {enter_new_scope();} Scope {exit_a_scope();}
-	|  DO {enter_new_scope();} Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
+// we separated Loop_statements bec they contain BREAK, Continue and we cant use them in normal context
+Loop_statements: Loop_statements stmt
+				| Loop_statements BREAK SEMICOLON {printf("break!! \n");}
+				| Loop_statements CONTINUE SEMICOLON {printf("continue!! \n");}
+				|
+				;
+
+Loop_Scope : OCBRACKET Loop_statements CCBRACKET {printf("");} 	 
+			;
+
+LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Loop_Scope {exit_a_scope();}
+	|  WHILE Boolean_Expression {enter_new_scope();} Loop_Scope {exit_a_scope();}
+	|  DO {enter_new_scope();} Loop_Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
 	;
 
 Type_Identifier:  INT {$$ = INT_DT; }
@@ -386,7 +455,6 @@ Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {
 						}else{
 							set_lexemeInfo(&$$,current_identifier->my_datatype);
 							$$->variableName = $1;
-
 						}
 					}
 
@@ -406,7 +474,7 @@ IF ELSE Case
 https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
 */
 // {enter_new_scope();}  {exit_a_scope();}
-IF_Statement : IF  ORBRACKET EXPRESSION CRBRACKET stmt endCondition 
+IF_Statement : IF  ORBRACKET EXPRESSION {if($3->my_type==STRING_DT)yyerror("Invalid String Conversion to Boolean");} CRBRACKET stmt endCondition 
 			;
 
 endCondition: %prec IFX | ELSE  stmt
@@ -474,6 +542,32 @@ endCondition: %prec IFX | ELSE  stmt
 		i++;
 	}
  }
+
+
+void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs){
+	// Number_Declaration will be ready and upgraded if needed
+	current_identifier = find_variable_in_scope(current_scope,lhs);
+	if(current_identifier == NULL){
+		yyerror_with_variable("identifier not declared in this scope",lhs );
+	}else{
+		operation = implicit_conversion(current_identifier->my_datatype,(*rhs)->my_type);
+		if(operation == EVAL_THEN_DOWNGRADE_RHS){
+			// downgrade conv to result dt needed
+			current_return_code = downgrade_my_value(rhs,(*rhs)->my_type, current_identifier->my_datatype,yylineno);
+			if(current_return_code == STRING_INVALID_OPERATION){
+				yyerror("invalid string conversion");
+			}
+		}else if(operation == EVAL_THEN_UPGRADE_RHS){
+			// upgrade to result dt needed
+			current_return_code = upgrade_my_value(rhs,(*rhs)->my_type, current_identifier->my_datatype,yylineno);
+			if(current_return_code == STRING_INVALID_OPERATION){
+				yyerror("invalid string conversion");
+			}
+		}else if(operation == RAISE_ERROR){
+			yyerror("invalid string conversion");
+		}
+	}
+}
 
  int main(void) {
 
