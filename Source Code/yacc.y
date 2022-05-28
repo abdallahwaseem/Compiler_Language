@@ -460,7 +460,7 @@ ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{$$ = (struct argument_in
 											$$->next_arg = NULL;
 											$$->my_name = $2;
 											$$->my_type = $1;}
-			| {$$ = NULL}//it can be empty
+			| {$$ = NULL;}//it can be empty
 			;
 
 Arguments_Call : EXPRESSION COMMA  Arguments_Call{ $$ = (struct argument_info *)malloc(sizeof(struct argument_info));
@@ -560,7 +560,7 @@ endCondition: %prec IFX | ELSE  stmt
 
 
 %% 
- int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
+ int yyerror(char *s) { printf("line number : %d %s\n", yylineno,s);     return 0; }
  int yyerror_with_variable(char *s, char* var) { fprintf(stderr, "line number : %d %s %s\n", yylineno,s, var);     return 0; }
  void enter_new_scope(){
 	// setting the parent to currnt scope
