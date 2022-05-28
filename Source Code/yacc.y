@@ -1,4 +1,16 @@
 %start program
+
+%union
+{  
+    int intValue;
+    float floatValue;
+	char charValue;                
+    char* stringValue;
+	int boolValue;
+	struct lexemeInfo * information;
+	struct argument_info * argument_info;
+}
+
 // Tokens for brackets
 	%token OCBRACKET
 	%token CCBRACKET
@@ -57,11 +69,11 @@
 
 
 // Tokens for primitive data types
-	%token INT
-	%token BOOL
-	%token FLOAT
-	%token CHAR
-	%token STRING
+	%token <intValue> INT
+	%token <charValue> CHAR
+	%token <floatValue> FLOAT
+	%token <boolValue> BOOL
+	%token <stringValue> STRING
 	%token CONST
 	%token VOID
 
@@ -72,7 +84,7 @@
 	%token CONTINUE
 
 // Token for IDENTIFIER
-  %token IDENTIFIER
+  %token <stringValue> IDENTIFIER
 
 // Tokens for switch case
 	%token SWITCH
@@ -100,15 +112,22 @@
 // token DEFAULT
 	%token DEFAULT
 
+%type <intValue> Type_Identifier   
+%type <information> Number_Declaration EXPRESSION Data_Types Boolean_Expression Function_Calls
+%type <argument_info> ARGUMENTS
+
 %nonassoc IFX
 %nonassoc ELSE
 %nonassoc UMINUS
 
 %{  
-	#include <stdio.h>   
+	#include <stdio.h>
+	#include <stdlib.h>   
+	#include <string.h>
+	#include <math.h>
 	#include "scope.h"
-
 	int yyerror(char *);
+	int yyerror_with_variable(char*, char*);
 	int yylex(void);
 	extern int yylineno ;
   	extern char* yytext;
@@ -116,9 +135,15 @@
 	extern FILE * yyin;
 	struct scope* current_scope ;
 	struct scope* parent_scope ;
+	
 	void enter_new_scope();
 	void exit_a_scope();
+	DataTypes* get_parameters_of_array(struct argument_info*);
+	void add_parameters_to_function_symbol_table(DataTypes*, struct argument_info*);
 
+	// variables to use through the code to check semantics
+	struct variable_entry * current_identifier;
+	RETURN_CODES current_return_code;
 %}
 
 
@@ -130,11 +155,24 @@ statements: statements stmt
 			|		
 			;
 		
-stmt:   
-		Type_Identifier IDENTIFIER  SEMICOLON {printf("Undeclared Variable \n");} 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable Declaration\n");} 
-	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");} 
-	| 	CONST Type_Identifier IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Constant Variable Declaration\n");} 
+stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable_to_scope(current_scope, $2, 0, $1,VARIABLE,NULL);
+												if(current_return_code == FAILURE)
+													yyerror_with_variable("Redefinition of variable ", $2);
+												else if(current_return_code == CONSTANT_NOT_INITIALIZED)
+													yyerror_with_variable("Must initialize constant within declaration ", $2);
+											}  
+
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE,NULL) == FAILURE)
+																		yyerror_with_variable("Redefinition of variable ", $2);
+																}
+
+	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
+													if(current_return_code == FAILURE)
+														yyerror_with_variable("Undeclared variable ", $1);
+													else if(current_return_code == CONSTANT_REASSIGNMENT)
+														yyerror_with_variable("cant reassign a constant variable :", $1);													
+												} 
+ 
 	|	Mathematical_Statement SEMICOLON {printf("MATH STATEMET\n");} 
 	|	IF_Statement
 	|	{enter_new_scope();} Scope {exit_a_scope();}
@@ -151,25 +189,37 @@ EXPRESSION: Data_Types {printf("expression datatype\n");}
 		|	Function_Calls	{printf("function call\n");}
 		;
 
-Number_Declaration: FLOAT 	{printf("float\n");}
-				|	INT 	{printf("int \n");}
-				|   IDENTIFIER {printf("variable\n");}
-				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation\n");}
-				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation\n");}
-				| 	Number_Declaration DIVIDE Number_Declaration {printf("division operation\n");}
-				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation\n");}
-				| 	Number_Declaration REM Number_Declaration {printf("remainder operation\n");}
-				| 	Number_Declaration POWER Number_Declaration {printf("power operation\n");}
+Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
+				
+				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1;}
+
+				|   IDENTIFIER { 
+						current_identifier = find_variable_in_scope(current_scope,$1);
+						if(current_identifier == NULL){
+							yyerror("identifier not initialzed in this scope");
+						}else{
+							set_lexemeInfo(&$$,current_identifier->my_datatype);
+							$$->stringValue = $1;
+						}
+					}
+
+				| 	Number_Declaration PLUS Number_Declaration {printf("addition operation \n");}			
+				
+				| 	Number_Declaration MINUS Number_Declaration {printf("subtraction operation \n");}
+				| 	Number_Declaration DIVIDE Number_Declaration { printf("division operation \n");}
+				| 	Number_Declaration MULTIPLY Number_Declaration {printf("Multiplication operation \n");}
+				| 	Number_Declaration REM Number_Declaration { printf("remainder operation \n");}
+				| 	Number_Declaration POWER Number_Declaration { printf("power operation \n");}
 				|	ORBRACKET Number_Declaration CRBRACKET {printf("number between brackets\n");}
-				| 	'-' Number_Declaration %prec UMINUS {printf("-ve number");}
+				| 	'-' Number_Declaration %prec UMINUS { printf("-ve number \n");}
 				;
 
 
-Data_Types: Number_Declaration {printf("number declaration or identifier \n");}
-			|	TRUE			{printf("Boolean Datatype \n");}
-			|	FALSE			{printf("Boolean Datatype \n");}
-			| 	CHAR			{printf("Character Datatype \n");}
-			| 	STRING			{printf("String Datatype \n");}
+Data_Types: Number_Declaration 	{printf("number declaration or identifier \n");}
+			|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
+			|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
+			| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
+			| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
 			;
 
 /* defining boolean expression */
@@ -204,7 +254,7 @@ Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {printf("Adding 
 				|   	IDENTIFIER DECREMENT {printf("decremening number \n");}
 				; 
 
-Scope: OCBRACKET statements CCBRACKET {printf("entered scope-> \n");} 	 
+Scope: OCBRACKET statements CCBRACKET {printf("");} 	 
 	;
 
 LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CRBRACKET {enter_new_scope();} Scope {exit_a_scope();}
@@ -212,11 +262,16 @@ LOOPS: FOR ORBRACKET stmt Boolean_Expression SEMICOLON Mathematical_Statement CR
 	|  DO {enter_new_scope();} Scope {exit_a_scope();} WHILE Boolean_Expression SEMICOLON {printf("Do while loop \n");}
 	;
 
-Type_Identifier:  INT {printf("integer type\n");}
-				| FLOAT {printf("float type\n");}
-				| CHAR  {printf("char type\n");}
-				| STRING{printf("string type\n");}
-				| BOOL {printf("boolean type\n");}
+Type_Identifier:  INT {$$ = INT_DT; }
+				| FLOAT {$$ = FLOAT_DT;}
+				| CHAR  {$$ = CHAR_DT;}
+				| STRING{$$ = STRING_DT;}
+				| BOOL {$$ = BOOL_DT;}
+				| CONST INT{$$ = CONST_INT_DT;}
+				| CONST FLOAT{$$ = CONST_FLOAT_DT;}
+				| CONST CHAR{$$ = CONST_CHAR_DT; }
+				| CONST STRING{$$ = CONST_STRING_DT;}
+				| CONST BOOL{$$ = CONST_BOOL_DT;}
 				;
 		
 
@@ -226,18 +281,49 @@ Type_Identifier:  INT {printf("integer type\n");}
 
 
 
-FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();} 
-			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {enter_new_scope();} Function_Scope {exit_a_scope();}
+FUNCTIONS : Type_Identifier IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
+					//getting arguments of these function
+					DataTypes* arguments_list = get_parameters_of_array($4);
+					// adding function to the symbol table
+					current_return_code = add_variable_to_scope(current_scope, $2, 0, $1, VARIABLE, arguments_list);
+					if(current_return_code == FAILURE){
+						yyerror_with_variable("Redefinition of function ", $2);
+					}
+					enter_new_scope(); // entering a new scope
+					// we add parameters to symbol table after making new scope
+					add_parameters_to_function_symbol_table(arguments_list, $4);
+								} Function_Scope {print_symbol_table(&(current_scope)->my_table); exit_a_scope();} 
+
+			| VOID IDENTIFIER ORBRACKET ARGUMENTS CRBRACKET {
+					//getting arguments of these function
+					DataTypes* arguments_list = get_parameters_of_array($4);
+					// adding function to the symbol table
+					current_return_code = add_variable_to_scope(current_scope, $2, 0, VOID_DT, VARIABLE, arguments_list);
+					if(current_return_code == FAILURE){
+						yyerror_with_variable("Redefinition of function ", $2);
+					}
+					enter_new_scope(); // entering a new scope
+					// we add parameters to symbol table after making new scope
+					add_parameters_to_function_symbol_table(arguments_list, $4);
+								} Void_Function_Scope {print_symbol_table(&(current_scope)->my_table); exit_a_scope();}
 			;
 
-Function_Scope: Scope
-			| OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 
+Function_Scope:	OCBRACKET statements RET EXPRESSION SEMICOLON CCBRACKET 	
+			;
+Void_Function_Scope:  Scope
 			| OCBRACKET statements RET SEMICOLON CCBRACKET 	
 			;
 
-ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{printf("function arguments \n");}
-			| Type_Identifier IDENTIFIER 	{printf("function arguments \n");}
-			| //it can be empty
+ARGUMENTS: Type_Identifier IDENTIFIER COMMA  ARGUMENTS	{$$ = (struct argument_info *)malloc(sizeof(struct argument_info));
+														 $$->next_arg = $4;
+														 $$->my_name = $2;
+														 $$->my_type = $1;
+														}
+			| Type_Identifier IDENTIFIER 	{$$ = (struct argument_info *)malloc(sizeof(struct argument_info));
+											$$->next_arg = NULL;
+											$$->my_name = $2;
+											$$->my_type = $1;}
+			| {}//it can be empty
 			;
 
 Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n");}
@@ -245,15 +331,23 @@ Arguments_Call : EXPRESSION COMMA  Arguments_Call	{printf("function arguments \n
 				|//it can be empty
 				;
 
-Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET {printf("calling fn \n");}
+Function_Calls: IDENTIFIER ORBRACKET Arguments_Call CRBRACKET { 
+						current_identifier = find_variable_in_scope(current_scope,$1);
+						if(current_identifier == NULL){
+							yyerror("function not initialzed in this scope");
+						}else{
+							set_lexemeInfo(&$$,current_identifier->my_datatype);
+							$$->stringValue = $1;
+						}
+					}
 
 // we made switch take a no (int , float ,.. ) or a fn call which returns int
 // will check that later
-Switch_Case : SWITCH Number_Declaration OCBRACKET Case_Expressions CCBRACKET
-			| SWITCH ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
+Switch_Case : SWITCH  Number_Declaration OCBRACKET Case_Expressions CCBRACKET 
+			| SWITCH  ORBRACKET Function_Calls CRBRACKET OCBRACKET Case_Expressions CCBRACKET
 			;
 
-Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
+Case_Expressions : CASE INT COLON {enter_new_scope();} statements BREAK SEMICOLON {exit_a_scope();} Case_Expressions
 				|	DEFAULT COLON statements 
 				|	// since we can have no default or any case (tested on C++)
 				;
@@ -263,16 +357,16 @@ Case_Expressions : CASE INT COLON statements BREAK SEMICOLON Case_Expressions
 IF ELSE Case
 https://stackoverflow.com/questions/6911214/how-to-make-else-associate-with-farthest-if-in-yacc 
 */
-IF_Statement : IF ORBRACKET EXPRESSION CRBRACKET stmt endCondition {printf("IF_Statement");}
+IF_Statement : IF  ORBRACKET EXPRESSION CRBRACKET stmt endCondition 
 			;
 
-endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
+endCondition: %prec IFX | ELSE  stmt
 			;
 
 
 %% 
  int yyerror(char *s) { fprintf(stderr, "line number : %d %s\n", yylineno,s);     return 0; }
- 
+ int yyerror_with_variable(char *s, char* var) { fprintf(stderr, "line number : %d %s %s\n", yylineno,s, var);     return 0; }
  void enter_new_scope(){
 	printf("enter scope \n");
 
@@ -297,10 +391,46 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 	return;
  }
 
+ DataTypes* get_parameters_of_array(struct argument_info* temp){
+	int no_of_arguments = 0 ;
+	struct argument_info* start_ptr = temp;
+	while(start_ptr){
+		no_of_arguments++;
+		start_ptr = start_ptr->next_arg;
+	}
+	start_ptr = temp;
+	// Dynamically allocate memory using malloc()
+	if(no_of_arguments == 0 )
+		return NULL;
+	DataTypes* arguments_list = (DataTypes*)malloc(no_of_arguments * sizeof(DataTypes));
+	int i = 0 ;
+	while(start_ptr){
+		arguments_list[i] = start_ptr->my_type;
+		start_ptr = start_ptr->next_arg;
+		i++;
+	}
+	return arguments_list;
+ }
+
+ void add_parameters_to_function_symbol_table(DataTypes* arguments_list,struct argument_info* temp){
+	int i = 0 ;
+	while(temp){
+		// adding each parameter to the symbol table
+		current_return_code = add_variable_to_scope(current_scope, temp->my_name, 0, temp->my_type,PARAMETER,NULL);
+		if(current_return_code == FAILURE)
+		{
+			yyerror_with_variable("Redefinition of parameter in function ", temp->my_name);
+		}
+		arguments_list[i] = temp->my_type;
+		temp = temp->next_arg;
+		i++;
+	}
+ }
 
  int main(void) {
 
-    
+    enter_new_scope(); // whole scope containing all global variables and functions
+	
 	yyin = fopen("input.txt", "r");
  
 	f1=fopen("output.txt","w");
@@ -316,5 +446,9 @@ endCondition: %prec IFX | ELSE stmt	{printf("else statement");}
 	
 	fclose(yyin);
 	fclose(f1);
+
+	// clearing the final scope 
+	print_symbol_table(&(current_scope)->my_table);
+	exit_a_scope();
     return 0;
 }

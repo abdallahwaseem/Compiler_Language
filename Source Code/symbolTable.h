@@ -1,54 +1,19 @@
 #include "uthash.h"
-typedef enum 
-{
-    FUNCTION,
-    PARAMETER,
-    VARIABLE
-} Kind;
-
-typedef enum 
-{
-    SUCCESS,
-    FAILURE,
-    CONSTANT_NOT_INITIALIZED,
-    CONSTANT_REASSIGNMENT
-} RETURN_CODES;
-
-typedef enum 
-{
-    // first ones are the lowest in rank
-    // rank is: BOOL,CHAR,INT,FLOAT
-    // so i made bool and const bool of same rank and so on
-    // i ranked them here because we will use that in implicit type conversion
-    BOOL_DT,
-    Const_BOOL_DT,
-    CHAR_DT,
-    Const_CHAR_DT,
-    INT_DT,
-    Const_INT_DT,
-    FLOAT_DT,
-    Const_FLOAT_DT,
-    STRING_DT,
-    Const_STRING_DT,
-    function_Datatype_DT
-    // last ones are the highest in rank
-} DataTypes;
-
-struct function_Datatype
-{
-    DataTypes *inputs; // array of inputs
-    DataTypes *output; // array of outputs
-};
+#include <stdio.h>
+#include "dataTypes.h"
 
 struct variable_entry
 {
     char *variable_name; // we will use the name of variable as key
     DataTypes my_datatype;
+    // for variables, it will be datatypes
+    // for functions, it will be ouput
+
     int is_initialized; // 0 : uninit , 1 : init
-
+    Kind my_kind;       // function , parameter , variable
     // for unused variables we will give warnings bec its not used through the whole program
-    int is_used; // 0 : unused , 1 : used
-
+    int is_used;       // 0 : unused , 1 : used
+    DataTypes *params; // the input params to function
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
@@ -56,7 +21,7 @@ struct variable_entry *find_variable_in_symbolTable(struct variable_entry **symb
 {
 
     struct variable_entry *variable = NULL;
-    HASH_FIND_STR(*symbolTable, "x", variable);
+    HASH_FIND_STR(*symbolTable, variable_to_find, variable);
 
     if (variable != NULL)
         return variable;
@@ -85,7 +50,7 @@ RETURN_CODES add_variable_to_symbolTable(struct variable_entry **symbolTable, st
     // const int x;
     // 	x = 10;
     // this is an error so we must check this within declaration
-    if (variable_to_add->my_datatype == Const_INT_DT || variable_to_add->my_datatype == Const_FLOAT_DT || variable_to_add->my_datatype == Const_CHAR_DT || variable_to_add->my_datatype == Const_STRING_DT)
+    if (variable_to_add->my_datatype == CONST_INT_DT || variable_to_add->my_datatype == CONST_FLOAT_DT || variable_to_add->my_datatype == CONST_CHAR_DT || variable_to_add->my_datatype == CONST_STRING_DT)
     {
         // if type is constant we will check if not initialized this is error
         if (variable_to_add->is_initialized == 0)
@@ -120,7 +85,7 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
     // const int x = 10;
     // x = 11; -> error
     // handled successfully in assign_previously_declared_variable function above
-    if (variable_to_set->my_datatype == Const_INT_DT || variable_to_set->my_datatype == Const_FLOAT_DT || variable_to_set->my_datatype == Const_CHAR_DT || variable_to_set->my_datatype == Const_STRING_DT || variable_to_set->my_datatype == Const_BOOL_DT)
+    if (variable_to_set->my_datatype == CONST_INT_DT || variable_to_set->my_datatype == CONST_FLOAT_DT || variable_to_set->my_datatype == CONST_CHAR_DT || variable_to_set->my_datatype == CONST_STRING_DT || variable_to_set->my_datatype == CONST_BOOL_DT)
     {
         // if type is constant we cant reassign it
         return CONSTANT_REASSIGNMENT;
@@ -144,3 +109,15 @@ RETURN_CODES assign_previously_declared_variable(struct variable_entry **symbolT
 // x = 11; -> error
 // handled successfully in assign_previously_declared_variable function above
 ///////////////////////////////////////////////////////////////////////////////////////////////
+
+void print_symbol_table(struct variable_entry **symbolTable)
+{
+    printf("\n-------------------PRINTING SYMBOL TABLE--------------------\n");
+    struct variable_entry *temp;
+
+    for (temp = *symbolTable; temp != NULL; temp = (struct variable_entry *)(temp->hh.next))
+    {
+        printf("%s \n", temp->variable_name);
+    }
+    printf("\n");
+}
