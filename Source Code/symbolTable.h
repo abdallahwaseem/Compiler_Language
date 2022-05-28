@@ -14,6 +14,7 @@ struct variable_entry
     // for unused variables we will give warnings bec its not used through the whole program
     int is_used;       // 0 : unused , 1 : used
     DataTypes *params; // the input params to function
+    int no_of_params;
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
