@@ -1,9 +1,13 @@
 # Importing Required libraries & Modules
+from cProfile import run
 from tkinter import *
 from tkinter import messagebox
+import os
 from tkinter import filedialog
 from turtle import bgcolor
+import tkinter as tk
 # Defining TextEditor Class
+
 class TextEditor:
   # Defining Constructor
   def __init__(self,root):
@@ -80,10 +84,15 @@ class TextEditor:
     # Adding Scrollbar to text area
     scrol_y.config(command=self.txtarea.yview)
     # Packing Text Area to root window
+    def run(T):
+        process  = os.popen('.\\a.exe')
+        x = process.read()
+        T.insert(tk.END,x)  
     self.txtarea.pack(fill=BOTH,expand=1)
+    T = Text(root, height = 100, width = 200)
     b2 = Button(root, text = "Compile",	
-height=3,width=10,bg='red')
-    T = Text(root, height = 5, width = 200)
+    height=3,width=10,bg='red',command=run(T))
+   
     
     b2.pack()
     T.pack()
@@ -246,6 +255,7 @@ height=3,width=10,bg='red')
     self.txtarea.bind("<Control-v>",self.paste)
     # Binding Ctrl+u to undo funtion
     self.txtarea.bind("<Control-u>",self.undo)
+  
 # Creating TK Container
 root = Tk()
 # Passing Root to TextEditor Class
