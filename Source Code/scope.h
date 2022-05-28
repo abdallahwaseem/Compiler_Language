@@ -52,7 +52,7 @@ struct variable_entry *find_variable_in_scope(struct scope *my_scope, char *vari
 }
 
 RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_init, DataTypes datatype, Kind kind,
-                                   DataTypes *input_params)
+                                   DataTypes *input_params, int no_of_params)
 {
     // making a new variable
     struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
@@ -64,6 +64,7 @@ RETURN_CODES add_variable_to_scope(struct scope *my_scope, char *name, int is_in
     new_variable->my_datatype = datatype;
     new_variable->variable_name = name;
     new_variable->params = input_params;
+    new_variable->no_of_params = no_of_params;
     return add_variable_to_symbolTable(&my_scope->my_table, new_variable);
 }
 
