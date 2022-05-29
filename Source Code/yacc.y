@@ -177,7 +177,9 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 													yyerror_with_variable("Must initialize constant within declaration ", $2);
 											}  
 
-	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if($4->is_initialized==0){
+	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if($4 != NULL){
+
+																	if($4->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	if(add_variable_to_scope(current_scope, $2, 1, $1,VARIABLE_KIND,NULL,0) == FAILURE){
@@ -201,8 +203,10 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																		}
 																	}
 																}
+															}
 
-	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { 	if($3->is_initialized==0){
+	|	IDENTIFIER ASSIGN EXPRESSION SEMICOLON { if($3 != NULL){
+													if($3->is_initialized==0){
 														yyerror("use of uninitialized variable");
 													}
 													current_return_code = assign_previously_declared_variable_in_scope(current_scope, $1);
@@ -211,8 +215,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 													else if(current_return_code == CONSTANT_REASSIGNMENT)
 														yyerror_with_variable("cant reassign a constant variable :", $1);
 													else{
-														current_identifier = find_variable_in_scope(current_scope,$1);
-														if($3 != NULL){
+															current_identifier = find_variable_in_scope(current_scope,$1);
 															operation = implicit_conversion(current_identifier->my_datatype,$3->my_type);
 															if(operation == EVAL_THEN_DOWNGRADE_RHS){
 																// downgrade conv to result dt needed
@@ -247,12 +250,18 @@ EXPRESSION: Number_Declaration {$$ =$1;}
 		|	Function_Calls	{$$ =$1;}
 		;
 
-Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
+Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
+							// setting the quadraple info
+							char buf[100];
+  							gcvt($$->floatValue, 2, buf);
+							push( quad_stack, buf);
+							}
 				
 				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1; 
-																char temp[4]; 
-																push( quad_stack, itoa(($$->intValue),temp,10));
-									}
+							// setting the quadraple info
+							char temp[4]; 
+							push( quad_stack, itoa(($$->intValue),temp,10));
+							}
 
 				|   IDENTIFIER { 
 						current_identifier = find_variable_in_scope(current_scope,$1);
@@ -264,21 +273,28 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 							$$->variableName = $1;
 							$$->is_initialized = current_identifier->is_initialized;
 							set_variable_used_in_scope(current_scope, $1);
+							// setting the quadraple info
+							push(quad_stack,$1);
 						}
 					}
-				| 	Number_Declaration PLUS Number_Declaration  { 	if($1->is_initialized==0 || $3->is_initialized==0){
-																													yyerror("use of uninitialized variable");
-																												}
-																												current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
-																												if(current_return_code == STRING_INVALID_OPERATION){
-																													yyerror("invalid operation on strings");
-																												}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-																													yyerror("Invalid Operations ");
-																												}
-																	
+				| 	Number_Declaration PLUS Number_Declaration  { if($1 && $3){
+																	if($1->is_initialized==0 || $3->is_initialized==0){
+																		yyerror("use of uninitialized variable");
+																	}
+																	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
+																	if(current_return_code == STRING_INVALID_OPERATION){
+																		yyerror("invalid operation on strings");
+																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																		yyerror("Invalid Operations ");
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "+");
+																	}
 												}			
+				}
 
-				| 	Number_Declaration MINUS Number_Declaration { if($1->is_initialized==0 || $3->is_initialized==0){
+				| 	Number_Declaration MINUS Number_Declaration {if($1 && $3){
+																		 if($1->is_initialized==0 || $3->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	current_return_code =  compute_rhs_value(&$$,$1,$3,MINUS_OP,yylineno);
@@ -287,10 +303,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
 																	}
-																	
-												}	
-				
-				| 	Number_Declaration DIVIDE Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																		}	
+															}
+				| 	Number_Declaration DIVIDE Number_Declaration {if($1 && $3){
+																	if($1->is_initialized==0 || $3->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	current_return_code =  compute_rhs_value(&$$,$1,$3,DIVIDE_OP,yylineno);
@@ -302,8 +318,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																		yyerror("Divison by zero !");
 																	}
 																	
-																}	
-				| 	Number_Declaration MULTIPLY Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																}
+															}	
+				| 	Number_Declaration MULTIPLY Number_Declaration {if($1 && $3){
+																 	if($1->is_initialized==0 || $3->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	current_return_code =  compute_rhs_value(&$$,$1,$3,MULTIPLY_OP,yylineno);
@@ -312,9 +330,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
 																	}
-																	
-																	}	
-				| 	Number_Declaration REM Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																	}
+																}	
+				| 	Number_Declaration REM Number_Declaration {if($1 && $3){
+																 	if($1->is_initialized==0 || $3->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	current_return_code =  compute_rhs_value(&$$,$1,$3,REM_OP,yylineno);
@@ -323,8 +342,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
 																	}
-																}	
-				| 	Number_Declaration POWER Number_Declaration { 	if($1->is_initialized==0 || $3->is_initialized==0){
+																}
+															}	
+				| 	Number_Declaration POWER Number_Declaration {if($1 && $3){
+																 	if($1->is_initialized==0 || $3->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	current_return_code =  compute_rhs_value(&$$,$1,$3,POWER_OP,yylineno);
@@ -334,8 +355,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																		yyerror("Invalid Operations ");
 																	}																	
 																}	
-				|	ORBRACKET Number_Declaration CRBRACKET {$$=$2;}
-				| 	'-' Number_Declaration %prec UMINUS { 			if($2->is_initialized==0){
+															}
+				|	ORBRACKET Number_Declaration CRBRACKET {if($2)$$=$2;}
+				| 	'-' Number_Declaration %prec UMINUS {if($2){
+														 			if($2->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
 																	current_return_code =  compute_rhs_value(&$$,$2,NULL,UMINUS_OP,yylineno);
@@ -344,7 +367,8 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
 																	}
-														}	
+														}
+													}	
 				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
 				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
 				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
@@ -737,6 +761,7 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
 	symbolTableFile = fopen("symbolTables.txt", "a");
 	quad_stack = (struct Stack*)malloc(sizeof(struct Stack));
 	quad_stack->top = 0;
+	quad_stack->id_quadruple = 1;
 	
 	if(!yyparse()) {
 	}
