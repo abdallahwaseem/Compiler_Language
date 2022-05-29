@@ -12,18 +12,15 @@
 	struct argument_info * argument_info;
 }
 
-// Tokens for brackets
 	%token OCBRACKET
 	%token CCBRACKET
 	%token ORBRACKET
 	%token CRBRACKET
 
-// Tokens for colons
 	%token SEMICOLON
 	%token COLON
 	%token COMMA
 
-// Tokens for x equal
 	%token INCREMENT
 	%token DECREMENT
 	%token PLUSEQUAL
@@ -31,7 +28,6 @@
 	%token MULTIPLYEQUAL
 	%token DIVIDEEQUAL
 
-// Tokens for x equal
 	%token GREATERTHAN
 	%token LESSTHAN
 	%token GREATERTHANOREQUAL
@@ -39,37 +35,28 @@
 	%token EQUALEQUAL
 	%token NOTEQUAL
 
-// Tokens for x equal
 	%token PLUS
 	%token MINUS
 	%token MULTIPLY
 	%token DIVIDE
 	%token POWER
-// Tokens for assign
 	%token ASSIGN
-
-// Tokens for remainder
 	%token REM
 	%token REMEQUAL
 
-// Tokens for logic operators
 	%token AND
 	%token OR
 	%token NOT
 
-// Tokens for loops
 	%token WHILE
 	%token DO
 	%token FOR
 
-// Tokens for conditions
 	%token IF 
 	%token ELSE
 
-// TODO:: print token
 
 
-// Tokens for primitive data types
 	%token <intValue> INT
 	%token <charValue> CHAR
 	%token <floatValue> FLOAT
@@ -78,30 +65,21 @@
 	%token CONST
 	%token VOID
 
-// Tokens for break
 	%token BREAK
-
-// Tokens for continue
 	%token CONTINUE
 
-// Token for IDENTIFIER
-  %token <variableName> IDENTIFIER
+  	%token <variableName> IDENTIFIER
 
-// Tokens for switch case
 	%token SWITCH
 	%token CASE
 
-// Tokens for booleans
 	%token FALSE
 	%token TRUE
 
 
-// Tokens for function return
 	%token RET
-
-// Associativity
-	%left ASSIGN
 	%left GREATERTHAN LESSTHAN
+	%left ASSIGN 
 	%left GREATERTHANOREQUAL LESSTHANOREQUAL
 	%left EQUALEQUAL NOTEQUAL
 	%left AND OR NOT
@@ -110,7 +88,6 @@
 	%left POWER
 	%left ORBRACKET CRBRACKET
 
-// token DEFAULT
 	%token DEFAULT
 
 %type <intValue> Type_Identifier   

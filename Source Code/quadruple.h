@@ -35,7 +35,15 @@ void push(struct Stack *quad_stack, char *str)
   quad_stack->items[quad_stack->top] = (char *)malloc(strlen(str) + 1);
   strcpy(quad_stack->items[quad_stack->top], str);
   quad_stack->top++;
-  if(quad_stack->top == 3){
+  char* last_one =quad_stack->items[quad_stack->top-1];
+  
+  if(strcmp(last_one,"=")!= 0 && strcmp(last_one,"+")!= 0  && strcmp(last_one,"-")!= 0 && strcmp(last_one,"*")!= 0 &&
+   strcmp(last_one,"/")!= 0 && strcmp(last_one,"^")!= 0 && strcmp(last_one,"%")!= 0){
+      // both sent are identifier so we need to calculate it
+      // we need to push another operator
+      return;
+  }
+  if(quad_stack->top >= 3 ){
     // pop stack and print 
     char temp[4]; 
     itoa(quad_stack->id_quadruple,temp,10);
