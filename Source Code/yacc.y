@@ -107,7 +107,6 @@
 	#include <math.h>
 	#include "scope.h"
 	#include "quadruple.h"
-
 	#include "typeConversion.h"
 
 	int yyerror(char *);
@@ -117,6 +116,8 @@
   	extern char* yytext;
 	FILE * f1;
 	FILE * symbolTableFile;
+	FILE * quadraplesFile;
+
 	extern FILE * yyin;
 	struct scope* current_scope ;
 	struct scope* parent_scope ;
@@ -155,7 +156,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 											}  
 
 	|	Type_Identifier IDENTIFIER ASSIGN EXPRESSION  SEMICOLON  {if($4 != NULL){
-
+																	
 																	if($4->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
@@ -170,7 +171,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																				yyerror("invalid string conversion");
 																			}else{
 																				// quadraples
-																				push(quad_stack," ",NULL);push(quad_stack,"=",$2);
+																				push(quad_stack," ",NULL,quadraplesFile);push(quad_stack,"=",$2,quadraplesFile);
 																			}
 																		}else if(operation == EVAL_THEN_UPGRADE_RHS){
 																			// upgrade to result dt needed
@@ -179,13 +180,13 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																				yyerror("invalid string conversion");
 																			}else{
 																				// quadraples
-																				push(quad_stack," ",NULL);push(quad_stack,"=",$2);
+																				push(quad_stack," ",NULL,quadraplesFile);push(quad_stack,"=",$2,quadraplesFile);
 																			}
 																		}else if(operation == RAISE_ERROR){
 																			yyerror("invalid string conversion");
 																		}else{
 																				// quadraples
-																				push(quad_stack," ",NULL);push(quad_stack,"=",$2);
+																				push(quad_stack," ",NULL,quadraplesFile);push(quad_stack,"=",$2,quadraplesFile);
 																		}
 																	}
 																}
@@ -210,7 +211,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																	yyerror("invalid string conversion");
 																}else{
 																	// quadraples
-																	push(quad_stack," ",NULL);push(quad_stack,"=",$1);
+																	push(quad_stack," ",NULL,quadraplesFile);push(quad_stack,"=",$1,quadraplesFile);
 																}
 															}else if(operation == EVAL_THEN_UPGRADE_RHS){
 																// upgrade to result dt needed
@@ -219,13 +220,13 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																	yyerror("invalid string conversion");
 																}else{
 																	// quadraples
-																	push(quad_stack," ",NULL);push(quad_stack,"=",$1);
+																	push(quad_stack," ",NULL,quadraplesFile);push(quad_stack,"=",$1,quadraplesFile);
 																}
 															}else if(operation == RAISE_ERROR){
 																yyerror("invalid string conversion");
 															}else{
 																// quadraples
-																push(quad_stack," ",NULL);push(quad_stack,"=",$1);
+																push(quad_stack," ",NULL,quadraplesFile);push(quad_stack,"=",$1,quadraplesFile);
 															}
 														}
 													}					
@@ -245,17 +246,17 @@ EXPRESSION: Number_Declaration {$$ =$1;}
 		|	Function_Calls	{$$ =$1;}
 		;
 
-Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
+Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;$$->variableName=NULL;
 							// setting the quadraple info
 							char buf[100];
   							gcvt($$->floatValue, 2, buf);
-							push( quad_stack, buf,NULL);
+							push( quad_stack, buf,NULL,quadraplesFile);
 							}
 				
-				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1; 
+				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1; $$->variableName=NULL;
 							// setting the quadraple info
 							char temp[4]; 
-							push( quad_stack, itoa(($$->intValue),temp,10), NULL);
+							push( quad_stack, itoa(($$->intValue),temp,10), NULL,quadraplesFile);
 							}
 
 				|   IDENTIFIER { 
@@ -269,7 +270,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 							$$->is_initialized = current_identifier->is_initialized;
 							set_variable_used_in_scope(current_scope, $1);
 							// setting the quadraple info
-							push(quad_stack,$1,NULL);
+							push(quad_stack,$1,NULL,quadraplesFile);
 						}
 					}
 				| 	Number_Declaration PLUS Number_Declaration  { if($1 && $3){
@@ -283,7 +284,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "+",NULL);
+																		push(quad_stack, "+",NULL,quadraplesFile);
 																	}
 												}			
 				}
@@ -299,7 +300,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "-",NULL);
+																		push(quad_stack, "-",NULL,quadraplesFile);
 																	}
 																}	
 															}
@@ -316,7 +317,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Divison by zero !");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "/",NULL);
+																		push(quad_stack, "/",NULL,quadraplesFile);
 																	}
 																}
 															}	
@@ -331,7 +332,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "*",NULL);
+																		push(quad_stack, "*",NULL,quadraplesFile);
 																	}
 																	}
 																}	
@@ -346,7 +347,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "%",NULL);
+																		push(quad_stack, "%",NULL,quadraplesFile);
 																	}
 																}
 															}	
@@ -361,7 +362,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "^",NULL);
+																		push(quad_stack, "^",NULL,quadraplesFile);
 																	}													
 																}	
 															}
@@ -377,15 +378,15 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, ".",NULL); // pushing delimiter to just handle this case
-																		push(quad_stack, "-",NULL);
+																		push(quad_stack, ".",NULL,quadraplesFile); // pushing delimiter to just handle this case
+																		push(quad_stack, "-",NULL,quadraplesFile);
 																	}
 														}
 													}	
-				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1; push(quad_stack, "true",NULL);}
-				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0; push(quad_stack, "false",NULL);}
-				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1; char x[1]="";strncat(x, &$1, 1); push(quad_stack,x,NULL);}
-				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;push(quad_stack, $1,NULL);}
+				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1; push(quad_stack, "true",NULL,quadraplesFile);}
+				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0; push(quad_stack, "false",NULL,quadraplesFile);}
+				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1; char x[1]="";strncat(x, &$1, 1); push(quad_stack,x,NULL,quadraplesFile);}
+				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;push(quad_stack, $1,NULL,quadraplesFile);}
 				;
 
 
@@ -451,7 +452,7 @@ Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {assigning_opera
 													yyerror_with_variable("Invalid Operation on strings",$1);
 												}else{
 													// push in quadraples 1 x x +
-													push(quad_stack,"1",NULL);push(quad_stack,current_identifier->variable_name,NULL);push(quad_stack,"+",current_identifier->variable_name);
+													push(quad_stack,"1",NULL,quadraplesFile);push(quad_stack,current_identifier->variable_name,NULL,quadraplesFile);push(quad_stack,"+",current_identifier->variable_name,quadraplesFile);
 												}
 											}
 				|   	IDENTIFIER DECREMENT {	current_identifier = find_variable_in_scope(current_scope,$1);
@@ -580,6 +581,7 @@ Function_Calls: ORBRACKET Function_Calls CRBRACKET  {$$ = $2;}
 									success = 0;
 									break;
 								}
+								
 								// then we will check the types of them one by one
 								if($3->my_name == NULL){
 									// therefore its not an identifier and its a value
@@ -589,7 +591,6 @@ Function_Calls: ORBRACKET Function_Calls CRBRACKET  {$$ = $2;}
 									// identifer is sent
 									// first of all we need to check that the variable passed is in table
 									struct variable_entry * arg_identifier = find_variable_in_scope(current_scope,$3->my_name);
-									
 									if(arg_identifier == NULL){
 										yyerror("variable in the argument list not initialzed in this scope");
 									}else{
@@ -608,6 +609,7 @@ Function_Calls: ORBRACKET Function_Calls CRBRACKET  {$$ = $2;}
 									success = 0;
 							}
 							if(success == 1){
+								set_variable_used_in_scope(current_scope, current_identifier->variable_name);
 								set_lexemeInfo(&$$,current_identifier->my_datatype);
 								$$->variableName = $1;
 							}else{
@@ -695,8 +697,8 @@ endCondition: %prec IFX | ELSE  {enter_new_scope();} stmt {exit_a_scope();}
 	int i = 0 ;
 	struct argument_info* start_ptr = temp;
 	while(start_ptr){
-		// adding each parameter to the symbol table
-		current_return_code = add_variable_to_scope(current_scope, start_ptr->my_name, 0, start_ptr->my_type,PARAMETER_KIND,NULL,0);
+		// adding each parameter to the symbol table assuming its init
+		current_return_code = add_variable_to_scope(current_scope, start_ptr->my_name, 1, start_ptr->my_type,PARAMETER_KIND,NULL,0);
 		if(current_return_code == FAILURE)
 		{
 			yyerror_with_variable("Redefinition of parameter in function ", start_ptr->my_name);
@@ -731,7 +733,7 @@ void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs,cha
 				yyerror("invalid string conversion");
 			}else{
 				//quadraples
-				push(quad_stack,lhs,NULL);push(quad_stack,op,lhs);
+				push(quad_stack,lhs,NULL,quadraplesFile);push(quad_stack,op,lhs,quadraplesFile);
 			}
 		}else if(operation == EVAL_THEN_UPGRADE_RHS){
 			// upgrade to result dt needed
@@ -740,13 +742,13 @@ void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs,cha
 				yyerror("invalid string conversion");
 			}else{
 				//quadraples
-				push(quad_stack,lhs,NULL);push(quad_stack,op,lhs);
+				push(quad_stack,lhs,NULL,quadraplesFile);push(quad_stack,op,lhs,quadraplesFile);
 			}
 		}else if(operation == RAISE_ERROR){
 			yyerror("invalid string conversion");
 		}else{
 				//quadraples
-				push(quad_stack,lhs,NULL);push(quad_stack,op,lhs);
+				push(quad_stack,lhs,NULL,quadraplesFile);push(quad_stack,op,lhs,quadraplesFile);
 		}
 	}
 }
@@ -780,10 +782,14 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
  int main(void) {
 
 	enter_new_scope(); // whole scope containing all global variables and functions
-	remove( "symbolTables.txt" );
 	
+	// clearing files before working
+	remove( "symbolTables.txt" );
+
 	yyin = fopen("input.txt", "r");
 	symbolTableFile = fopen("symbolTables.txt", "a");
+	remove( "quadraples.txt" );
+	quadraplesFile = fopen("quadraples.txt", "a");
 	quad_stack = (struct Stack*)malloc(sizeof(struct Stack));
 	quad_stack->top = 0;
 	quad_stack->id_quadruple = 1;
@@ -802,5 +808,6 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
 	exit_a_scope();
 
 	fclose(symbolTableFile);
+	fclose(quadraplesFile);
 	return 0;
 }
