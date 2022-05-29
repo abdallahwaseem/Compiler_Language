@@ -73,7 +73,7 @@
 
 
 \".*\"											        {return STRING;}
-\'.\'										          	{yylval.charValue = yytext[0]; return CHAR;}
+\'.\'										          	{yylval.charValue = yytext[1]; return CHAR;}
 [a-zA-Z][_a-zA-Z0-9]*						  	{yylval.stringValue = strdup(yytext); return IDENTIFIER; }	
 [\t  ]+											        /* ignore whitespace */;
 [\n]											          {}

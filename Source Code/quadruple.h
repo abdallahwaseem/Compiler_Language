@@ -17,6 +17,15 @@ struct Stack
   int id_quadruple; // t1,t2 
 };
 
+void print_stack(struct Stack *quad_stack)
+{
+  // print stack
+  for (int i = 0; i < quad_stack->top; i++)
+  {
+    printf("%s\n", quad_stack->items[i]);
+  }
+}
+
 char* pop(struct Stack **quad_stack){
   return (*quad_stack)->items[--((*quad_stack)->top)];
 }
@@ -37,16 +46,12 @@ void push(struct Stack *quad_stack, char *str)
     quad_info->result = quad_stack->id_quadruple++;
     char destination[] = "t";
     strcat(destination,temp);
+    if(strcmp(quad_info->operand2,".") == 0){
+      // we have t2 = - t1
+      quad_info->operand2 = " ";
+    }
     printf("%s %s %s %s \n",destination,quad_info->operand1,quad_info->opcode,quad_info->operand2);
     push(quad_stack,destination);//pushing our destination
   }
 
-}
-void print_stack(struct Stack *quad_stack)
-{
-  // print stack
-  for (int i = 1; i <= quad_stack->top; i++)
-  {
-    printf("%s\n", quad_stack->items[i]);
-  }
 }

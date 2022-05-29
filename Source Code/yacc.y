@@ -191,15 +191,24 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																			current_return_code = downgrade_my_value(&$4,$4->my_type, $1,yylineno);
 																			if(current_return_code == STRING_INVALID_OPERATION){
 																				yyerror("invalid string conversion");
+																			}else{
+																				// quadraples
+																				push(quad_stack," ");push(quad_stack,"=");
 																			}
 																		}else if(operation == EVAL_THEN_UPGRADE_RHS){
 																			// upgrade to result dt needed
 																			current_return_code = upgrade_my_value(&$4,$4->my_type, $1,yylineno);
 																			if(current_return_code == STRING_INVALID_OPERATION){
 																				yyerror("invalid string conversion");
+																			}else{
+																				// quadraples
+																				push(quad_stack," ");push(quad_stack,"=");
 																			}
 																		}else if(operation == RAISE_ERROR){
 																			yyerror("invalid string conversion");
+																		}else{
+																				// quadraples
+																				push(quad_stack," ");push(quad_stack,"=");
 																		}
 																	}
 																}
@@ -222,15 +231,24 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																current_return_code = downgrade_my_value(&$3,$3->my_type, current_identifier->my_datatype,yylineno);
 																if(current_return_code == STRING_INVALID_OPERATION){
 																	yyerror("invalid string conversion");
+																}else{
+																	// quadraples
+																	push(quad_stack," ");push(quad_stack,"=");
 																}
 															}else if(operation == EVAL_THEN_UPGRADE_RHS){
 																// upgrade to result dt needed
 																current_return_code = upgrade_my_value(&$3,$3->my_type, current_identifier->my_datatype,yylineno);
 																if(current_return_code == STRING_INVALID_OPERATION){
 																	yyerror("invalid string conversion");
+																}else{
+																	// quadraples
+																	push(quad_stack," ");push(quad_stack,"=");
 																}
 															}else if(operation == RAISE_ERROR){
 																yyerror("invalid string conversion");
+															}else{
+																// quadraples
+																push(quad_stack," ");push(quad_stack,"=");
 															}
 														}
 													}					
@@ -302,8 +320,11 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "-");
 																	}
-																		}	
+																}	
 															}
 				| 	Number_Declaration DIVIDE Number_Declaration {if($1 && $3){
 																	if($1->is_initialized==0 || $3->is_initialized==0){
@@ -316,8 +337,10 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else if(current_return_code ==DIVISION_BY_ZERO_ERROR){
 																		yyerror("Divison by zero !");
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "/");
 																	}
-																	
 																}
 															}	
 				| 	Number_Declaration MULTIPLY Number_Declaration {if($1 && $3){
@@ -329,6 +352,9 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "*");
 																	}
 																	}
 																}	
@@ -341,6 +367,9 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "%");
 																	}
 																}
 															}	
@@ -353,11 +382,14 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
-																	}																	
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "^");
+																	}													
 																}	
 															}
 				|	ORBRACKET Number_Declaration CRBRACKET {if($2)$$=$2;}
-				| 	'-' Number_Declaration %prec UMINUS {if($2){
+				| 	MINUS Number_Declaration %prec UMINUS {if($2){
 														 			if($2->is_initialized==0){
 																		yyerror("use of uninitialized variable");
 																	}
@@ -366,13 +398,17 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("invalid operation on strings");
 																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
 																		yyerror("Invalid Operations ");
+																	}else{
+																		// adding to quadraple
+																		push(quad_stack, "."); // pushing delimiter to just handle this case
+																		push(quad_stack, "-");
 																	}
 														}
 													}	
-				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1;}
-				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0;}
-				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1;}
-				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;}
+				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1; push(quad_stack, "true");}
+				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0; push(quad_stack, "false");}
+				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1; char x[1]="";strncat(x, &$1, 1); push(quad_stack,x);}
+				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;push(quad_stack, $1);}
 				;
 
 
