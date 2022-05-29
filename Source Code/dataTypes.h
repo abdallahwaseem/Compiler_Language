@@ -73,7 +73,6 @@ typedef enum
     NOTEQUAL_OP
 } Boolean_Operator;
 
-
 struct variable_entry
 {
     char *variable_name; // we will use the name of variable as key
@@ -90,7 +89,7 @@ struct variable_entry
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
-struct variable_entry * copy_variable(struct variable_entry * old_variable)
+struct variable_entry *copy_variable(struct variable_entry *old_variable)
 {
     // making a new variable
     struct variable_entry *new_variable = (struct variable_entry *)malloc(sizeof(struct variable_entry));
@@ -104,8 +103,6 @@ struct variable_entry * copy_variable(struct variable_entry * old_variable)
     new_variable->no_of_params = old_variable->no_of_params;
     return new_variable;
 }
-
-
 
 struct lexemeInfo
 {
@@ -125,8 +122,6 @@ void set_lexemeInfo(struct lexemeInfo **input_lexeme, DataTypes my_type)
     (*input_lexeme)->my_type = my_type;
     (*input_lexeme)->is_initialized = 1; // initially 1 till its  assigned by zero if identifer
 }
-
-
 
 // linked list of arguments
 struct argument_info

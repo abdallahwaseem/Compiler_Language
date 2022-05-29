@@ -121,12 +121,16 @@
 %nonassoc ELSE
 %nonassoc UMINUS
 
+
+
 %{  
 	#include <stdio.h>
 	#include <stdlib.h>   
 	#include <string.h>
 	#include <math.h>
 	#include "scope.h"
+	#include "quadruple.h"
+
 	#include "typeConversion.h"
 
 	int yyerror(char *);
@@ -152,7 +156,10 @@
 	struct variable_entry * current_identifier;
 	RETURN_CODES current_return_code;
 	OperationsToDo operation;
+
+	struct Stack * quad_stack;
 %}
+
 
 
 %%
@@ -242,7 +249,10 @@ EXPRESSION: Number_Declaration {$$ =$1;}
 
 Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 				
-				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1;}
+				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1; 
+																char temp[4]; 
+																push( quad_stack, itoa(($$->intValue),temp,10));
+									}
 
 				|   IDENTIFIER { 
 						current_identifier = find_variable_in_scope(current_scope,$1);
@@ -257,14 +267,14 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;}
 						}
 					}
 				| 	Number_Declaration PLUS Number_Declaration  { 	if($1->is_initialized==0 || $3->is_initialized==0){
-																		yyerror("use of uninitialized variable");
-																	}
-																	current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
-																	if(current_return_code == STRING_INVALID_OPERATION){
-																		yyerror("invalid operation on strings");
-																	}else if(current_return_code == OPERATION_NOT_SUPPORTED){
-																		yyerror("Invalid Operations ");
-																	}
+																													yyerror("use of uninitialized variable");
+																												}
+																												current_return_code =  compute_rhs_value(&$$,$1,$3,PLUS_OP,yylineno);
+																												if(current_return_code == STRING_INVALID_OPERATION){
+																													yyerror("invalid operation on strings");
+																												}else if(current_return_code == OPERATION_NOT_SUPPORTED){
+																													yyerror("Invalid Operations ");
+																												}
 																	
 												}			
 
@@ -725,7 +735,8 @@ void check_Type_Conversion(DataTypes real_identifier ,struct argument_info* inpu
 	
 	yyin = fopen("input.txt", "r");
 	symbolTableFile = fopen("symbolTables.txt", "a");
-	
+	quad_stack = (struct Stack*)malloc(sizeof(struct Stack));
+	quad_stack->top = 0;
 	
 	if(!yyparse()) {
 	}
