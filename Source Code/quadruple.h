@@ -30,7 +30,7 @@ char* pop(struct Stack **quad_stack){
   return (*quad_stack)->items[--((*quad_stack)->top)];
 }
 
-void push(struct Stack *quad_stack, char *str)
+void push(struct Stack *quad_stack, char *str, char* result_name)
 {
   quad_stack->items[quad_stack->top] = (char *)malloc(strlen(str) + 1);
   strcpy(quad_stack->items[quad_stack->top], str);
@@ -52,14 +52,22 @@ void push(struct Stack *quad_stack, char *str)
     quad_info->operand2 = pop(&quad_stack);
     quad_info->operand1 = pop(&quad_stack);
     quad_info->result = quad_stack->id_quadruple++;
-    char destination[] = "t";
-    strcat(destination,temp);
+    
+    
     if(strcmp(quad_info->operand2,".") == 0){
       // we have t2 = - t1
       quad_info->operand2 = " ";
     }
-    printf("%s %s %s %s \n",destination,quad_info->operand1,quad_info->opcode,quad_info->operand2);
-    push(quad_stack,destination);//pushing our destination
+    if( result_name ==NULL){
+      char destination[] = "t";
+      strcat(destination,temp);
+      printf("%s %s %s %s \n",destination,quad_info->operand1,quad_info->opcode,quad_info->operand2);
+      push(quad_stack,destination,destination);//pushing our destination
+    }else{
+      printf("%s %s %s %s \n",result_name,quad_info->operand1,quad_info->opcode,quad_info->operand2);
+      quad_stack->id_quadruple--;
+      push(quad_stack,result_name,result_name);//pushing our destination
+    }
   }
 
 }

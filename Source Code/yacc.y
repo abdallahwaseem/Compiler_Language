@@ -126,7 +126,7 @@
 	void exit_a_scope();
 	DataTypes* get_parameters_of_array(struct argument_info*,int*);
 	void add_parameters_to_function_symbol_table(DataTypes*, struct argument_info*);
-	void assigning_operation_with_conversion(char* , struct lexemeInfo **);
+	void assigning_operation_with_conversion(char* , struct lexemeInfo **,char*);
 	void check_Type_Conversion(DataTypes ,struct argument_info*);
 
 	// variables to use through the code to check semantics
@@ -170,7 +170,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																				yyerror("invalid string conversion");
 																			}else{
 																				// quadraples
-																				push(quad_stack," ");push(quad_stack,"=");
+																				push(quad_stack," ",NULL);push(quad_stack,"=",$2);
 																			}
 																		}else if(operation == EVAL_THEN_UPGRADE_RHS){
 																			// upgrade to result dt needed
@@ -179,13 +179,13 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																				yyerror("invalid string conversion");
 																			}else{
 																				// quadraples
-																				push(quad_stack," ");push(quad_stack,"=");
+																				push(quad_stack," ",NULL);push(quad_stack,"=",$2);
 																			}
 																		}else if(operation == RAISE_ERROR){
 																			yyerror("invalid string conversion");
 																		}else{
 																				// quadraples
-																				push(quad_stack," ");push(quad_stack,"=");
+																				push(quad_stack," ",NULL);push(quad_stack,"=",$2);
 																		}
 																	}
 																}
@@ -210,7 +210,7 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																	yyerror("invalid string conversion");
 																}else{
 																	// quadraples
-																	push(quad_stack," ");push(quad_stack,"=");
+																	push(quad_stack," ",NULL);push(quad_stack,"=",$1);
 																}
 															}else if(operation == EVAL_THEN_UPGRADE_RHS){
 																// upgrade to result dt needed
@@ -219,13 +219,13 @@ stmt:   Type_Identifier IDENTIFIER SEMICOLON { current_return_code =add_variable
 																	yyerror("invalid string conversion");
 																}else{
 																	// quadraples
-																	push(quad_stack," ");push(quad_stack,"=");
+																	push(quad_stack," ",NULL);push(quad_stack,"=",$1);
 																}
 															}else if(operation == RAISE_ERROR){
 																yyerror("invalid string conversion");
 															}else{
 																// quadraples
-																push(quad_stack," ");push(quad_stack,"=");
+																push(quad_stack," ",NULL);push(quad_stack,"=",$1);
 															}
 														}
 													}					
@@ -249,13 +249,13 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 							// setting the quadraple info
 							char buf[100];
   							gcvt($$->floatValue, 2, buf);
-							push( quad_stack, buf);
+							push( quad_stack, buf,NULL);
 							}
 				
 				|	INT 	{set_lexemeInfo(&$$, INT_DT); $$->intValue = $1; 
 							// setting the quadraple info
 							char temp[4]; 
-							push( quad_stack, itoa(($$->intValue),temp,10));
+							push( quad_stack, itoa(($$->intValue),temp,10), NULL);
 							}
 
 				|   IDENTIFIER { 
@@ -269,7 +269,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 							$$->is_initialized = current_identifier->is_initialized;
 							set_variable_used_in_scope(current_scope, $1);
 							// setting the quadraple info
-							push(quad_stack,$1);
+							push(quad_stack,$1,NULL);
 						}
 					}
 				| 	Number_Declaration PLUS Number_Declaration  { if($1 && $3){
@@ -283,7 +283,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "+");
+																		push(quad_stack, "+",NULL);
 																	}
 												}			
 				}
@@ -299,7 +299,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "-");
+																		push(quad_stack, "-",NULL);
 																	}
 																}	
 															}
@@ -316,7 +316,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Divison by zero !");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "/");
+																		push(quad_stack, "/",NULL);
 																	}
 																}
 															}	
@@ -331,7 +331,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "*");
+																		push(quad_stack, "*",NULL);
 																	}
 																	}
 																}	
@@ -346,7 +346,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "%");
+																		push(quad_stack, "%",NULL);
 																	}
 																}
 															}	
@@ -361,7 +361,7 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "^");
+																		push(quad_stack, "^",NULL);
 																	}													
 																}	
 															}
@@ -377,15 +377,15 @@ Number_Declaration: FLOAT 	{set_lexemeInfo(&$$, FLOAT_DT); $$->floatValue = $1;
 																		yyerror("Invalid Operations ");
 																	}else{
 																		// adding to quadraple
-																		push(quad_stack, "."); // pushing delimiter to just handle this case
-																		push(quad_stack, "-");
+																		push(quad_stack, ".",NULL); // pushing delimiter to just handle this case
+																		push(quad_stack, "-",NULL);
 																	}
 														}
 													}	
-				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1; push(quad_stack, "true");}
-				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0; push(quad_stack, "false");}
-				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1; char x[1]="";strncat(x, &$1, 1); push(quad_stack,x);}
-				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;push(quad_stack, $1);}
+				|	TRUE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 1; push(quad_stack, "true",NULL);}
+				|	FALSE			{set_lexemeInfo(&$$, BOOL_DT); $$->boolValue = 0; push(quad_stack, "false",NULL);}
+				| 	CHAR			{set_lexemeInfo(&$$, CHAR_DT); $$->charValue = $1; char x[1]="";strncat(x, &$1, 1); push(quad_stack,x,NULL);}
+				| 	STRING			{set_lexemeInfo(&$$, STRING_DT); $$->stringValue = $1;push(quad_stack, $1,NULL);}
 				;
 
 
@@ -439,16 +439,19 @@ Boolean_Expression:
 /* IDENTIFIER ASSIGN EXPRESSION SEMICOLON {printf("Variable assignment\n");}  */
 // We made the assign separetely in the stmt cfg since assign can take any thing on the RHS
 // while if we made it here , it will take number only
-Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
-				|		IDENTIFIER MINUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
-				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
-				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
-				|		IDENTIFIER REMEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3);}
+Mathematical_Statement: IDENTIFIER PLUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3,"+"); }
+				|		IDENTIFIER MINUSEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3,"-");}
+				|		IDENTIFIER MULTIPLYEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3,"*");}
+				|		IDENTIFIER DIVIDEEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3,"/");}
+				|		IDENTIFIER REMEQUAL Number_Declaration {assigning_operation_with_conversion($1, &$3,"%");}
 				|   	IDENTIFIER INCREMENT {	current_identifier = find_variable_in_scope(current_scope,$1);
 												if(current_identifier == NULL){
 													yyerror_with_variable("identifier not declared in this scope",$1);
 												}else if(current_identifier->my_datatype==STRING_DT){
 													yyerror_with_variable("Invalid Operation on strings",$1);
+												}else{
+													// push in quadraples 1 x x +
+													push(quad_stack,"1",NULL);push(quad_stack,current_identifier->variable_name,NULL);push(quad_stack,"+",current_identifier->variable_name);
 												}
 											}
 				|   	IDENTIFIER DECREMENT {	current_identifier = find_variable_in_scope(current_scope,$1);
@@ -703,7 +706,7 @@ endCondition: %prec IFX | ELSE  {enter_new_scope();} stmt {exit_a_scope();}
 	}
  }
 
-void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs){
+void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs,char* op){
 	// Number_Declaration will be ready and upgraded if needed
 	current_return_code = assign_previously_declared_variable_in_scope(current_scope,lhs);
 	if(current_return_code == FAILURE){
@@ -726,15 +729,24 @@ void assigning_operation_with_conversion(char* lhs, struct lexemeInfo ** rhs){
 			current_return_code = downgrade_my_value(rhs,(*rhs)->my_type, current_identifier->my_datatype,yylineno);
 			if(current_return_code == STRING_INVALID_OPERATION){
 				yyerror("invalid string conversion");
+			}else{
+				//quadraples
+				push(quad_stack,lhs,NULL);push(quad_stack,op,lhs);
 			}
 		}else if(operation == EVAL_THEN_UPGRADE_RHS){
 			// upgrade to result dt needed
 			current_return_code = upgrade_my_value(rhs,(*rhs)->my_type, current_identifier->my_datatype,yylineno);
 			if(current_return_code == STRING_INVALID_OPERATION){
 				yyerror("invalid string conversion");
+			}else{
+				//quadraples
+				push(quad_stack,lhs,NULL);push(quad_stack,op,lhs);
 			}
 		}else if(operation == RAISE_ERROR){
 			yyerror("invalid string conversion");
+		}else{
+				//quadraples
+				push(quad_stack,lhs,NULL);push(quad_stack,op,lhs);
 		}
 	}
 }
