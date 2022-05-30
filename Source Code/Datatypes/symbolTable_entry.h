@@ -1,3 +1,5 @@
+#ifndef _SYMTABENTRY
+#define _SYMTABENTRY
 #include "uthash.h"
 #include "enums.h"
 
@@ -31,3 +33,5 @@ struct variable_entry *copy_variable(struct variable_entry *old_variable)
     new_variable->no_of_params = old_variable->no_of_params;
     return new_variable;
 }
+
+#endif

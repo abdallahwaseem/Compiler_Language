@@ -1,3 +1,5 @@
+#ifndef _SYMTAB
+#define _SYMTAB
 #include "uthash.h"
 #include "structs.h"
 #include "symbolTable_entry.h"
@@ -111,3 +113,5 @@ void print_symbol_table(struct variable_entry **symbolTable, FILE *sT)
     }
     fprintf(sT, "\n");
 }
+
+#endif

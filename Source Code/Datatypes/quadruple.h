@@ -1,3 +1,6 @@
+#ifndef _QUADRUPLES
+#define _QUADRUPLES
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,3 +75,5 @@ void push(struct Stack *quad_stack, char *str, char* result_name,FILE *FileWrite
   }
 
 }
+
+#endif

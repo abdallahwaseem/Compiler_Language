@@ -1,3 +1,5 @@
+#ifndef _SCOPE
+#define _SCOPE
 #include "symbolTable.h"
 
 struct scope
@@ -153,3 +155,5 @@ void print_symbol_table_in_scope(struct scope *my_scope, FILE *sT)
 {
     print_symbol_table(&my_scope->my_table, sT);
 }
+
+#endif
