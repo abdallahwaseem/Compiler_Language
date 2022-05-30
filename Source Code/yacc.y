@@ -107,7 +107,9 @@
 	#include <math.h>
 	#include "Datatypes/scope.h"
 	#include "Datatypes/quadruple.h"
-	#include "Utils/typeCheking.h"
+	#include "Utils/typeConversion.h"
+	#include "Utils/compute.h"
+
 
 	int yyerror(char *);
 	int yyerror_with_variable(char*, char*);

@@ -1,7 +1,6 @@
 #ifndef _TYPECHECKING
 #define _TYPECHECKING
 #include "../Datatypes/enums.h"
-#include "typeConversion.h""
 #include "compute.h"
 
 
@@ -10,13 +9,6 @@ RETURN_CODES check_both_sides(DataTypes in_inputs, DataTypes in_outputs)
     if (in_inputs != in_outputs)
         return FAILURE;
     return SUCCESS;
-}
-
-// first of all we may have different data types on the right handside
-// we will get the highest rank of them
-DataTypes compute_highest_rank(DataTypes op1, DataTypes op2)
-{
-    return (op1>op2)? op1: op2;
 }
 
 

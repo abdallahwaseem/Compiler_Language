@@ -3,8 +3,17 @@
 
 #include "../Datatypes/enums.h"
 #include "../Datatypes/structs.h"
+#include "typeChecking.h"
+#include "typeConversion.h"
 #include <math.h>
 #include <stdio.h>
+
+// first of all we may have different data types on the right handside
+// we will get the highest rank of them
+DataTypes compute_highest_rank(DataTypes op1, DataTypes op2)
+{
+    return (op1>op2)? op1: op2;
+}
 
 // compute the result of rhs with setting the type
 RETURN_CODES compute_rhs_value(struct lexemeInfo **result, struct lexemeInfo *op1, struct lexemeInfo *op2,Operator operator,int yylineno)
