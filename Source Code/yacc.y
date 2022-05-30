@@ -105,8 +105,8 @@
 	#include <stdlib.h>   
 	#include <string.h>
 	#include <math.h>
-	#include "scope.h"
-	#include "quadruple.h"
+	#include "Datatypes/scope.h"
+	#include "Datatypes/quadruple.h"
 	#include "typeConversion.h"
 
 	int yyerror(char *);

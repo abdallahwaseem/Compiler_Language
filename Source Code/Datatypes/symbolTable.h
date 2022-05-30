@@ -1,6 +1,7 @@
 #include "uthash.h"
+#include "structs.h"
+#include "symbolTable_entry.h"
 #include <stdio.h>
-#include "dataTypes.h"
 
 struct variable_entry *find_variable_in_symbolTable(struct variable_entry **symbolTable, char *variable_to_find)
 {

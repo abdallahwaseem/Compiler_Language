@@ -1,4 +1,4 @@
-#include "scope.h"
+#include "../Datatypes/scope.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {

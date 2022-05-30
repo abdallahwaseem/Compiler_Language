@@ -1,6 +1,6 @@
-#include "dataTypes.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 struct quadruple_info
 {
