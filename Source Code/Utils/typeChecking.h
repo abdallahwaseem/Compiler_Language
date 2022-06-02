@@ -1,6 +1,6 @@
 #ifndef _TYPECHECKING
 #define _TYPECHECKING
-#include "../Datatypes/enums.h"
+#include "../Data Structures/enums.h"
 #include "compute.h"
 
 

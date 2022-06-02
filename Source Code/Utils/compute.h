@@ -1,8 +1,8 @@
 #ifndef _COMPUTE
 #define _COMPUTE
 
-#include "../Datatypes/enums.h"
-#include "../Datatypes/structs.h"
+#include "../Data Structures/enums.h"
+#include "../Data Structures/structs.h"
 #include "typeChecking.h"
 #include "typeConversion.h"
 #include <math.h>

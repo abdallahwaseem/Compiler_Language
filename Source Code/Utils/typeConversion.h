@@ -1,7 +1,7 @@
 #ifndef _TYPECONVERSION
 #define _TYPECONVERSION
-#include "../Datatypes/enums.h"
-#include "../Datatypes/structs.h"
+#include "../Data Structures/enums.h"
+#include "../Data Structures/structs.h"
 #include <stdio.h>
 
 RETURN_CODES downgrade_my_value(struct lexemeInfo **op, DataTypes prevdt, DataTypes newdt, int yylineno){

@@ -105,8 +105,8 @@
 	#include <stdlib.h>   
 	#include <string.h>
 	#include <math.h>
-	#include "Datatypes/scope.h"
-	#include "Datatypes/quadruple.h"
+	#include "Data Structures/scope.h"
+	#include "Data Structures/quadruple.h"
 	#include "Utils/typeConversion.h"
 	#include "Utils/compute.h"
 
